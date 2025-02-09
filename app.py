@@ -1135,7 +1135,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1180,7 +1179,7 @@ style_presets = {
 }
 style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
-# Negative Prompt (New Feature)
+# Negative Prompt
 negative_prompt = st.sidebar.text_input("🚫 Negative Prompt", "blurry, distorted, low quality")
 
 # ---- 🌟 Main UI 🌟 ----
@@ -1201,7 +1200,7 @@ if st.button("🚀 Generate Image"):
             images = []
             cols = st.columns(num_variations)
             for i in range(num_variations):
-                seed = random.randint(1, 1000000)  # Ensure unique variations
+                seed = random.randint(1, 1000000)
                 variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
                 generated_image = client.text_to_image(variation_prompt, model=model, seed=seed, negative_prompt=negative_prompt)
                 generated_image = generated_image.resize(resolution_map[resolution])
@@ -1217,6 +1216,41 @@ if st.button("🚀 Generate Image"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
+# ---- 🌟 Image Enhancement Section 🌟 ----
+st.markdown("---")
+st.markdown("## ✨ Image Enhancement")
+
+uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
+enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+
+def enhance_image(image, options):
+    if "Sharpen" in options:
+        image = ImageEnhance.Sharpness(image).enhance(4.0)
+    if "Contrast" in options:
+        image = ImageEnhance.Contrast(image).enhance(2.5)
+    if "Brightness" in options:
+        image = ImageEnhance.Brightness(image).enhance(1.8)
+    if "Saturation" in options:
+        image = ImageEnhance.Color(image).enhance(2.5)
+    if "Grayscale" in options:
+        image = ImageOps.grayscale(image)
+    if "HDR Effect" in options:
+        image = ImageEnhance.Contrast(image).enhance(3.0)
+        image = ImageEnhance.Sharpness(image).enhance(4.0)
+    return image
+
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
+
+    if st.button("✨ Enhance Image"):
+        enhanced_image = enhance_image(image, enhance_options)
+        st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+        img_bytes = io.BytesIO()
+        enhanced_image.save(img_bytes, format="PNG")
+        img_bytes = img_bytes.getvalue()
+        st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
 # ---- 🌟 History Section 🌟 ----
 st.sidebar.subheader("📜 Image History")
 if "history" in st.session_state and st.session_state.history:
@@ -1228,6 +1262,8 @@ if "history" in st.session_state and st.session_state.history:
 if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
+# ---- 🌟 Footer ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
