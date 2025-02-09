@@ -808,11 +808,7 @@ HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
 # Streamlit UI Configuration
-st.set_page_config(
-    page_title="Rachna",
-    page_icon="https://raw.githubusercontent.com/adii-coder/tti/refs/heads/main/favicon.ico",
-    layout="wide"
-)
+st.set_page_config(page_title="Rachna",page_icon="https://raw.githubusercontent.com/adii-coder/tti/refs/heads/main/favicon.ico",layout="wide")
 
 # ---- 🌟 Custom CSS for Styling 🌟 ----
 st.markdown(
