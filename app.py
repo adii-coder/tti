@@ -614,7 +614,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -637,8 +636,7 @@ st.markdown(
         .stButton button { background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }
         .stDownloadButton button { background-color: #007BFF; color: white; border-radius: 10px; }
         .stSidebar { background-color: #20232A; transition: all 0.3s ease-in-out; }
-        img { border-radius: 10px; max-width: 200px; height: auto; }
-        .small-image img { width: 80px !important; height: auto !important; }
+        .small-image img { width: 150px !important; height: auto !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -673,10 +671,6 @@ style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys(
 st.title("🌟 Rachna - AI Image Creator 🌟")
 st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
 
-# User Input
-prompt = st.text_area("📝 Enter your prompt:", "A futuristic cyberpunk city at night with neon lights")
-negative_prompt = st.text_area("🚫 Negative Prompt (Optional):", "blurry, distorted, low quality")
-
 # Image Enhancement Section Toggle
 if "enhance_mode" not in st.session_state:
     st.session_state.enhance_mode = False
@@ -701,7 +695,7 @@ if st.session_state.enhance_mode:
         return image
     
     if uploaded_file:
-        image = Image.open(uploaded_file).resize((200, 200))
+        image = Image.open(uploaded_file).resize((150, 150))
         st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
 
         if st.button("✨ Enhance Image"):
@@ -722,7 +716,7 @@ else:
                 for _ in range(num_variations):
                     variation_prompt = f"{final_prompt}, variation {_+1}"
                     generated_image = client.text_to_image(variation_prompt, model=model)
-                    generated_image = generated_image.resize((200, 200))  # Smaller display size
+                    generated_image = generated_image.resize((150, 150))  # Smaller display size
                     images.append(generated_image)
 
                 # Display images in a grid
@@ -746,6 +740,7 @@ else:
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
 
