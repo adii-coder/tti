@@ -974,22 +974,29 @@ import io
 import random
 import base64
 
-
 # Set your Hugging Face API key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
 # Streamlit UI Configuration
-st.set_page_config(page_title="Rachna", page_icon="https://raw.githubusercontent.com/adii-coder/tti/refs/heads/main/favicon.ico", layout="wide")
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
-# ---- 🌟 Custom CSS for Styling 🌟 ----
+# ---- 🌟 Custom CSS & Dark Mode 🌟 ----
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = True  # Default dark mode
+
+def toggle_dark_mode():
+    st.session_state.dark_mode = not st.session_state.dark_mode
+
+st.sidebar.button("🌙 Toggle Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode", on_click=toggle_dark_mode)
+
 st.markdown(
-    """
+    f"""
     <style>
-        body { background-color: #0E1117; color: #EAEAEA; }
-        .stButton button { background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }
-        .stDownloadButton button { background-color: #007BFF; color: white; border-radius: 10px; }
-        .stSidebar { background-color: #20232A; transition: all 0.3s ease-in-out; }
+        body {{ background-color: {"#0E1117" if st.session_state.dark_mode else "#FFFFFF"}; color: {"#EAEAEA" if st.session_state.dark_mode else "#000000"}; }}
+        .stButton button {{ background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }}
+        .stDownloadButton button {{ background-color: #007BFF; color: white; border-radius: 10px; }}
+        .stSidebar {{ background-color: {"#20232A" if st.session_state.dark_mode else "#F0F0F0"}; transition: all 0.3s ease-in-out; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -1014,7 +1021,6 @@ resolution_map = {
     "7680x4320 (8K)": (7680, 4320),
     "12288x6480 (12K)": (12288, 6480)
 }
-resolution = "3840x2160 (4K)"
 resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
 num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
 
@@ -1028,6 +1034,9 @@ style_presets = {
     "Realistic": "A highly detailed and photorealistic portrait"
 }
 style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
+
+# Negative Prompt (New Feature)
+negative_prompt = st.sidebar.text_input("🚫 Negative Prompt", "blurry, distorted, low quality")
 
 # ---- 🌟 Main UI 🌟 ----
 st.title("🌟 Rachna - AI Image Creator 🌟")
@@ -1046,7 +1055,7 @@ if st.session_state.enhance_mode:
     st.markdown("## ✨ Image Enhancement")
     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
     enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
-    
+
     def enhance_image(image, options):
         if "Sharpen" in options:
             image = ImageEnhance.Sharpness(image).enhance(4.0)
@@ -1062,7 +1071,7 @@ if st.session_state.enhance_mode:
             image = ImageEnhance.Contrast(image).enhance(3.0)
             image = ImageEnhance.Sharpness(image).enhance(4.0)
         return image
-    
+
     if uploaded_file:
         image = Image.open(uploaded_file)
         st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
@@ -1072,52 +1081,48 @@ if st.session_state.enhance_mode:
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
             img_bytes = io.BytesIO()
             enhanced_image.save(img_bytes, format="PNG")
-            img_bytes = img_bytes.getvalue()
             st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 else:
     # ---- 🌟 Generate AI Image Section 🌟 ----
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
-    
+
     if st.button("🚀 Generate Image"):
-    with st.spinner("Generating... ⏳"):
-        try:
-            final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+        with st.spinner("Generating... ⏳"):
+            try:
+                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
 
-            if "history" not in st.session_state:
-                st.session_state.history = []
+                if "history" not in st.session_state:
+                    st.session_state.history = []
 
-            images = []
-            cols = st.columns(num_variations)  # Fix indentation here
-            for i in range(num_variations):  # Ensure this loop runs correctly
-                seed = random.randint(1, 1000000)  
-                variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
-                generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
-                generated_image = generated_image.resize(resolution_map[resolution])
-                images.append(generated_image)
+                images = []
+                cols = st.columns(num_variations)
+                for i in range(num_variations):
+                    seed = random.randint(1, 1000000)  # Ensure unique variations
+                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed, negative_prompt=negative_prompt)
+                    generated_image = generated_image.resize(resolution_map[resolution])
+                    images.append(generated_image)
 
-                with cols[i]:
-                    st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-                    img_bytes = io.BytesIO()
-                    generated_image.save(img_bytes, format="PNG")
-                    img_bytes = img_bytes.getvalue()
-                    st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
-                    st.session_state.history.append(img_bytes)
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-
+                    with cols[i]:
+                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                        img_bytes = io.BytesIO()
+                        generated_image.save(img_bytes, format="PNG")
+                        img_bytes = img_bytes.getvalue()
+                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+                        st.session_state.history.append(img_bytes)
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
 # ---- 🌟 History Section 🌟 ----
 st.sidebar.subheader("📜 Image History")
 if "history" in st.session_state and st.session_state.history:
     for idx, img_bytes in enumerate(st.session_state.history[-5:]):
-        img = Image.open(io.BytesIO(img_bytes))
+        img = Image.open(io.BytesIO(img_bytes)).resize((100, 100))
         st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
         st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
 
 if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
-# ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
