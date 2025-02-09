@@ -604,7 +604,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -724,19 +723,25 @@ else:
                     img.save(img_bytes, format="PNG")
                     img_bytes = img_bytes.getvalue()
                     st.download_button(label="💽 Download Image", data=img_bytes, file_name=f"generated_image_{idx+1}.png", mime="image/png")
-                    st.session_state.history.append(img)
+                    st.session_state.history.append(img_bytes)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
 # ---- 🌟 History Section 🌟 ----
 st.sidebar.subheader("📜 Image History")
 if "history" in st.session_state and st.session_state.history:
-    for idx, img in enumerate(st.session_state.history[-5:]):
+    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+        img = Image.open(io.BytesIO(img_bytes))
         st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+if st.sidebar.button("🗑️ Clear History"):
+    st.session_state.history = []
 
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
 
