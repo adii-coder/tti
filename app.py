@@ -971,7 +971,9 @@ import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 import io
+import random
 import base64
+
 
 # Set your Hugging Face API key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
@@ -1085,21 +1087,23 @@ else:
                     st.session_state.history = []
                 
                 images = []
-                cols = st.columns(num_variations)
-                for i in range(num_variations):
-                    generated_image = client.text_to_image(final_prompt, model=model)
-                    generated_image = generated_image.resize(resolution_map[resolution])
-                    images.append(generated_image)
-                    
-                    with cols[i]:
-                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-                        img_bytes = io.BytesIO()
-                        generated_image.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
-                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
-                        st.session_state.history.append(img_bytes)
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
+            cols = st.columns(num_variations)
+            for i in range(num_variations):
+                seed = random.randint(1, 1000000)  # Ensure unique variations
+                variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+                generated_image = generated_image.resize(resolution_map[resolution])
+                images.append(generated_image)
+                
+                with cols[i]:
+                    st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                    img_bytes = io.BytesIO()
+                    generated_image.save(img_bytes, format="PNG")
+                    img_bytes = img_bytes.getvalue()
+                    st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+                    st.session_state.history.append(img_bytes)
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
 # ---- 🌟 History Section 🌟 ----
 st.sidebar.subheader("📜 Image History")
