@@ -446,8 +446,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -488,7 +486,7 @@ model = st.sidebar.selectbox(
 )
 
 # Resolution & Image Variations
-resolution = st.sidebar.radio("🎨 Select Resolution", ["512x512", "768x768", "1024x1024"], index=0)
+resolution = st.sidebar.radio("🎨 Select Resolution", ["512x512", "768x768", "1024x1024"], index=2)  # Default to highest resolution
 num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
 
 # Style Presets
@@ -520,7 +518,7 @@ if st.button("🚀 Generate Image"):
             for _ in range(num_variations):
                 variation_prompt = f"{final_prompt}, variation {_+1}"  # Unique variations
                 generated_image = client.text_to_image(variation_prompt, model=model)
-                generated_image = generated_image.resize((512, 512))  # Resize for UI aesthetics
+                generated_image = generated_image.resize((1024, 1024))  # Use higher resolution
                 images.append(generated_image)
 
             # Display images in a grid
@@ -548,17 +546,15 @@ if st.button("🚀 Generate Image"):
 st.header("✨ Image Enhancement")
 
 uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
-enhance_option = st.radio("🔍 Enhancement Type", ["None", "Sharpen", "Contrast", "Grayscale"], index=0)
+enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale"], default=[])
 
-def enhance_image(image, enhance_option):
-    if enhance_option == "Sharpen":
-        enhancer = ImageEnhance.Sharpness(image)
-        return enhancer.enhance(2.0)
-    elif enhance_option == "Contrast":
-        enhancer = ImageEnhance.Contrast(image)
-        return enhancer.enhance(1.5)
-    elif enhance_option == "Grayscale":
-        return ImageOps.grayscale(image)
+def enhance_image(image, options):
+    if "Sharpen" in options:
+        image = ImageEnhance.Sharpness(image).enhance(2.0)
+    if "Contrast" in options:
+        image = ImageEnhance.Contrast(image).enhance(1.5)
+    if "Grayscale" in options:
+        image = ImageOps.grayscale(image)
     return image
 
 if uploaded_file:
@@ -567,7 +563,7 @@ if uploaded_file:
     st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
 
     if st.button("✨ Enhance Image"):
-        enhanced_image = enhance_image(image, enhance_option)
+        enhanced_image = enhance_image(image, enhance_options)
         st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
 
         # Convert enhanced image to bytes for download
@@ -586,5 +582,4 @@ if "history" in st.session_state and st.session_state.history:
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
 
