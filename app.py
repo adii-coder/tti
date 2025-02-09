@@ -616,7 +616,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -639,8 +638,8 @@ st.markdown(
         .stButton button { background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }
         .stDownloadButton button { background-color: #007BFF; color: white; border-radius: 10px; }
         .stSidebar { background-color: #20232A; transition: all 0.3s ease-in-out; }
-        img { border-radius: 10px; max-width: 300px; height: auto; }
-        .small-image img { width: 100px !important; height: auto !important; }
+        img { border-radius: 10px; max-width: 250px; height: auto; }
+        .small-image img { width: 80px !important; height: auto !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -680,9 +679,15 @@ prompt = st.text_area("📝 Enter your prompt:", "A futuristic cyberpunk city at
 negative_prompt = st.text_area("🚫 Negative Prompt (Optional):", "blurry, distorted, low quality")
 
 # Image Enhancement Section Toggle
-enhance_mode = st.sidebar.button("✨ Image Enhancement")
+if "enhance_mode" not in st.session_state:
+    st.session_state.enhance_mode = False
 
-if enhance_mode:
+def toggle_enhance_mode():
+    st.session_state.enhance_mode = not st.session_state.enhance_mode
+
+enhance_mode_button = st.sidebar.button("✨ Image Enhancement", on_click=toggle_enhance_mode)
+
+if st.session_state.enhance_mode:
     st.markdown("## ✨ Image Enhancement")
     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
     enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale"], default=[])
@@ -697,7 +702,7 @@ if enhance_mode:
         return image
     
     if uploaded_file:
-        image = Image.open(uploaded_file).resize((300, 300))
+        image = Image.open(uploaded_file).resize((250, 250))
         st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
 
         if st.button("✨ Enhance Image"):
@@ -718,7 +723,7 @@ else:
                 for _ in range(num_variations):
                     variation_prompt = f"{final_prompt}, variation {_+1}"
                     generated_image = client.text_to_image(variation_prompt, model=model)
-                    generated_image = generated_image.resize((300, 300))  # Smaller display size
+                    generated_image = generated_image.resize((250, 250))  # Smaller display size
                     images.append(generated_image)
 
                 # Display images in a grid
@@ -742,5 +747,6 @@ else:
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
