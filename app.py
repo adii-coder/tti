@@ -1079,22 +1079,22 @@ else:
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
     
     if st.button("🚀 Generate Image"):
-        with st.spinner("Generating... ⏳"):
-            try:
-                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-                
-                if "history" not in st.session_state:
-                    st.session_state.history = []
-                
-                images = []
-            cols = st.columns(num_variations)
-            for i in range(num_variations):
-                seed = random.randint(1, 1000000)  # Ensure unique variations
+    with st.spinner("Generating... ⏳"):
+        try:
+            final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+
+            if "history" not in st.session_state:
+                st.session_state.history = []
+
+            images = []
+            cols = st.columns(num_variations)  # Fix indentation here
+            for i in range(num_variations):  # Ensure this loop runs correctly
+                seed = random.randint(1, 1000000)  
                 variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
                 generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
                 generated_image = generated_image.resize(resolution_map[resolution])
                 images.append(generated_image)
-                
+
                 with cols[i]:
                     st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
                     img_bytes = io.BytesIO()
@@ -1104,6 +1104,7 @@ else:
                     st.session_state.history.append(img_bytes)
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
 
 # ---- 🌟 History Section 🌟 ----
 st.sidebar.subheader("📜 Image History")
