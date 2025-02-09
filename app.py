@@ -604,6 +604,199 @@
 
 
 
+# import streamlit as st
+# from huggingface_hub import InferenceClient
+# from PIL import Image, ImageEnhance, ImageOps
+# import io
+# import base64
+
+# # Set your Hugging Face API key from Streamlit Secrets
+# HF_API_KEY = st.secrets["HF_API_KEY"]
+# client = InferenceClient(api_key=HF_API_KEY)
+
+# # Streamlit UI Configuration
+# st.set_page_config(page_title="Rachna", page_icon="🎨", layout="wide")
+
+# # ---- 🌟 Custom CSS for Styling 🌟 ----
+# st.markdown(
+#     """
+#     <style>
+#         body { background-color: #0E1117; color: #EAEAEA; }
+#         .stButton button { background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }
+#         .stDownloadButton button { background-color: #007BFF; color: white; border-radius: 10px; }
+#         .stSidebar { background-color: #20232A; transition: all 0.3s ease-in-out; }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+# )
+
+# # ---- 🌟 Sidebar Settings 🌟 ----
+# st.sidebar.header("⚙️ Settings")
+
+# # Model Selection
+# model = st.sidebar.selectbox(
+#     "Select Model",
+#     ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"],
+#     index=0
+# )
+
+# # Resolution & Image Variations
+# resolution_map = {"512x512": (512, 512), "768x768": (768, 768), "1024x1024": (1024, 1024)}
+# resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
+# num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
+
+# # Style Presets
+# style_presets = {
+#     "None": "",
+#     "Cyberpunk": "A futuristic cyberpunk city with neon lights",
+#     "Anime": "Anime-style fantasy landscape",
+#     "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
+#     "Sketch": "A pencil sketch of a medieval castle",
+#     "Realistic": "A highly detailed and photorealistic portrait"
+# }
+# style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
+
+# # ---- 🌟 Main UI 🌟 ----
+# st.title("🌟 Rachna - AI Image Creator 🌟")
+# st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+
+# # Image Enhancement Section Toggle
+# if "enhance_mode" not in st.session_state:
+#     st.session_state.enhance_mode = False
+
+# def toggle_enhance_mode():
+#     st.session_state.enhance_mode = not st.session_state.enhance_mode
+
+# st.sidebar.button("✨ Image Enhancement", on_click=toggle_enhance_mode)
+
+# if st.session_state.enhance_mode:
+#     st.markdown("## ✨ Image Enhancement")
+#     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
+#     enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation"], default=[])
+    
+#     def enhance_image(image, options):
+#         if "Sharpen" in options:
+#             image = ImageEnhance.Sharpness(image).enhance(2.0)
+#         if "Contrast" in options:
+#             image = ImageEnhance.Contrast(image).enhance(1.5)
+#         if "Brightness" in options:
+#             image = ImageEnhance.Brightness(image).enhance(1.3)
+#         if "Saturation" in options:
+#             image = ImageEnhance.Color(image).enhance(1.5)
+#         if "Grayscale" in options:
+#             image = ImageOps.grayscale(image)
+#         return image
+    
+#     if uploaded_file:
+#         image = Image.open(uploaded_file)
+#         st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
+
+#         if st.button("✨ Enhance Image"):
+#             enhanced_image = enhance_image(image, enhance_options)
+#             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+#             img_bytes = io.BytesIO()
+#             enhanced_image.save(img_bytes, format="PNG")
+#             img_bytes = img_bytes.getvalue()
+#             st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+# else:
+#     # ---- 🌟 Generate AI Image Section 🌟 ----
+#     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+    
+#     if st.button("🚀 Generate Image"):
+#         with st.spinner("Generating... ⏳"):
+#             try:
+#                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                
+#                 images = []
+#                 for _ in range(num_variations):
+#                     variation_prompt = f"{final_prompt}, variation {_+1}"
+#                     generated_image = client.text_to_image(variation_prompt, model=model)
+#                     generated_image = generated_image.resize(resolution_map[resolution])
+#                     images.append(generated_image)
+                
+#                 if "history" not in st.session_state:
+#                     st.session_state.history = []
+                
+#                 for idx, img in enumerate(images):
+#                     st.image(img, caption=f"Generated Image {idx+1}", use_container_width=True)
+#                     img_bytes = io.BytesIO()
+#                     img.save(img_bytes, format="PNG")
+#                     img_bytes = img_bytes.getvalue()
+#                     st.download_button(label="💽 Download Image", data=img_bytes, file_name=f"generated_image_{idx+1}.png", mime="image/png")
+#                     st.session_state.history.append(img_bytes)
+#             except Exception as e:
+#                 st.error(f"❌ Error: {e}")
+
+# # ---- 🌟 History Section 🌟 ----
+# st.sidebar.subheader("📜 Image History")
+# if "history" in st.session_state and st.session_state.history:
+#     for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+#         img = Image.open(io.BytesIO(img_bytes))
+#         st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+#         st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+# if st.sidebar.button("🗑️ Clear History"):
+#     st.session_state.history = []
+
+# # ---- 🌟 Footer & Dark Mode Option 🌟 ----
+# st.markdown("---")
+# st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -672,19 +865,22 @@ st.sidebar.button("✨ Image Enhancement", on_click=toggle_enhance_mode)
 if st.session_state.enhance_mode:
     st.markdown("## ✨ Image Enhancement")
     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
-    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation"], default=[])
+    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
     
     def enhance_image(image, options):
         if "Sharpen" in options:
-            image = ImageEnhance.Sharpness(image).enhance(2.0)
+            image = ImageEnhance.Sharpness(image).enhance(3.0)
         if "Contrast" in options:
-            image = ImageEnhance.Contrast(image).enhance(1.5)
+            image = ImageEnhance.Contrast(image).enhance(2.0)
         if "Brightness" in options:
-            image = ImageEnhance.Brightness(image).enhance(1.3)
+            image = ImageEnhance.Brightness(image).enhance(1.5)
         if "Saturation" in options:
-            image = ImageEnhance.Color(image).enhance(1.5)
+            image = ImageEnhance.Color(image).enhance(2.0)
         if "Grayscale" in options:
             image = ImageOps.grayscale(image)
+        if "HDR Effect" in options:
+            image = ImageEnhance.Contrast(image).enhance(2.5)
+            image = ImageEnhance.Sharpness(image).enhance(3.0)
         return image
     
     if uploaded_file:
@@ -709,8 +905,7 @@ else:
                 
                 images = []
                 for _ in range(num_variations):
-                    variation_prompt = f"{final_prompt}, variation {_+1}"
-                    generated_image = client.text_to_image(variation_prompt, model=model)
+                    generated_image = client.text_to_image(final_prompt, model=model)
                     generated_image = generated_image.resize(resolution_map[resolution])
                     images.append(generated_image)
                 
@@ -741,13 +936,6 @@ if st.sidebar.button("🗑️ Clear History"):
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
-
-
-
-
-
-
 
 
 
