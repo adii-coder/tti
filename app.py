@@ -1004,7 +1004,14 @@ model = st.sidebar.selectbox(
 )
 
 # Resolution & Image Variations
-resolution_map = {"1024x1024": (1024, 1024), "2048x2048": (2048, 2048), "3840x2160 (4K)": (3840, 2160)}
+resolution_map = {
+    "1280x720 (720p)": (1280, 720),
+    "1920x1080 (1080p)": (1920, 1080),
+    "2560x1440 (2K)": (2560, 1440),
+    "3840x2160 (4K)": (3840, 2160),
+    "7680x4320 (8K)": (7680, 4320),
+    "12288x6480 (12K)": (12288, 6480)
+}
 resolution = "3840x2160 (4K)"
 resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
 num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
