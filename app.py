@@ -605,12 +605,10 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 import io
-import random
 import base64
 
 # Set your Hugging Face API key from Streamlit Secrets
@@ -644,7 +642,8 @@ model = st.sidebar.selectbox(
 )
 
 # Resolution & Image Variations
-resolution = st.sidebar.radio("🎨 Select Resolution", ["512x512", "768x768", "1024x1024"], index=2)
+resolution_map = {"512x512": (512, 512), "768x768": (768, 768), "1024x1024": (1024, 1024)}
+resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
 num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
 
 # Style Presets
@@ -669,12 +668,12 @@ if "enhance_mode" not in st.session_state:
 def toggle_enhance_mode():
     st.session_state.enhance_mode = not st.session_state.enhance_mode
 
-enhance_mode_button = st.sidebar.button("✨ Image Enhancement", on_click=toggle_enhance_mode)
+st.sidebar.button("✨ Image Enhancement", on_click=toggle_enhance_mode)
 
 if st.session_state.enhance_mode:
     st.markdown("## ✨ Image Enhancement")
     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
-    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "Noise Reduction"], default=[])
+    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation"], default=[])
     
     def enhance_image(image, options):
         if "Sharpen" in options:
@@ -708,29 +707,37 @@ else:
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-
+                
                 images = []
                 for _ in range(num_variations):
                     variation_prompt = f"{final_prompt}, variation {_+1}"
                     generated_image = client.text_to_image(variation_prompt, model=model)
+                    generated_image = generated_image.resize(resolution_map[resolution])
                     images.append(generated_image)
-
-                # Display images in a scrollable section with full quality
+                
+                if "history" not in st.session_state:
+                    st.session_state.history = []
+                
                 for idx, img in enumerate(images):
                     st.image(img, caption=f"Generated Image {idx+1}", use_container_width=True)
                     img_bytes = io.BytesIO()
                     img.save(img_bytes, format="PNG")
                     img_bytes = img_bytes.getvalue()
                     st.download_button(label="💽 Download Image", data=img_bytes, file_name=f"generated_image_{idx+1}.png", mime="image/png")
-                    if "history" not in st.session_state:
-                        st.session_state.history = []
                     st.session_state.history.append(img)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+# ---- 🌟 History Section 🌟 ----
+st.sidebar.subheader("📜 Image History")
+if "history" in st.session_state and st.session_state.history:
+    for idx, img in enumerate(st.session_state.history[-5:]):
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
 
