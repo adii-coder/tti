@@ -613,7 +613,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -706,7 +705,9 @@ if st.session_state.enhance_mode:
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 else:
-    # ---- 🌟 Generate AI Image Button 🌟 ----
+    # ---- 🌟 Generate AI Image Section 🌟 ----
+    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+    
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
@@ -740,6 +741,7 @@ else:
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
 
