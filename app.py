@@ -608,8 +608,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -632,7 +630,6 @@ st.markdown(
         .stButton button { background-color: #4CAF50; color: white; font-size: 16px; border-radius: 10px; }
         .stDownloadButton button { background-color: #007BFF; color: white; border-radius: 10px; }
         .stSidebar { background-color: #20232A; transition: all 0.3s ease-in-out; }
-        .small-image img { width: 150px !important; height: auto !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -679,19 +676,23 @@ enhance_mode_button = st.sidebar.button("✨ Image Enhancement", on_click=toggle
 if st.session_state.enhance_mode:
     st.markdown("## ✨ Image Enhancement")
     uploaded_file = st.file_uploader("📂 Upload an Image for Enhancement", type=["png", "jpg", "jpeg"])
-    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale"], default=[])
+    enhance_options = st.multiselect("🔍 Enhancement Options", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "Noise Reduction"], default=[])
     
     def enhance_image(image, options):
         if "Sharpen" in options:
             image = ImageEnhance.Sharpness(image).enhance(2.0)
         if "Contrast" in options:
             image = ImageEnhance.Contrast(image).enhance(1.5)
+        if "Brightness" in options:
+            image = ImageEnhance.Brightness(image).enhance(1.3)
+        if "Saturation" in options:
+            image = ImageEnhance.Color(image).enhance(1.5)
         if "Grayscale" in options:
             image = ImageOps.grayscale(image)
         return image
     
     if uploaded_file:
-        image = Image.open(uploaded_file).resize((150, 150))
+        image = Image.open(uploaded_file)
         st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
 
         if st.button("✨ Enhance Image"):
@@ -714,24 +715,18 @@ else:
                 for _ in range(num_variations):
                     variation_prompt = f"{final_prompt}, variation {_+1}"
                     generated_image = client.text_to_image(variation_prompt, model=model)
-                    generated_image = generated_image.resize((150, 150))  # Smaller display size
                     images.append(generated_image)
 
-                # Display images in a grid
-                cols = st.columns(num_variations)
+                # Display images in a scrollable section with full quality
                 for idx, img in enumerate(images):
-                    with cols[idx]:
-                        st.image(img, caption=f"Generated Image {idx+1}", use_container_width=True)
-
-                        img_bytes = io.BytesIO()
-                        img.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
-
-                        st.download_button(label="💽 Download Image", data=img_bytes, file_name=f"generated_image_{idx+1}.png", mime="image/png")
-
-                        if "history" not in st.session_state:
-                            st.session_state.history = []
-                        st.session_state.history.append(img)
+                    st.image(img, caption=f"Generated Image {idx+1}", use_column_width=True)
+                    img_bytes = io.BytesIO()
+                    img.save(img_bytes, format="PNG")
+                    img_bytes = img_bytes.getvalue()
+                    st.download_button(label="💽 Download Image", data=img_bytes, file_name=f"generated_image_{idx+1}.png", mime="image/png")
+                    if "history" not in st.session_state:
+                        st.session_state.history = []
+                    st.session_state.history.append(img)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
