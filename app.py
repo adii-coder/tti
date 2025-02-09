@@ -606,8 +606,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -719,7 +717,7 @@ else:
 
                 # Display images in a scrollable section with full quality
                 for idx, img in enumerate(images):
-                    st.image(img, caption=f"Generated Image {idx+1}", use_column_width=True)
+                    st.image(img, caption=f"Generated Image {idx+1}", use_container_width=True)
                     img_bytes = io.BytesIO()
                     img.save(img_bytes, format="PNG")
                     img_bytes = img_bytes.getvalue()
@@ -733,6 +731,7 @@ else:
 # ---- 🌟 Footer & Dark Mode Option 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
 
 
