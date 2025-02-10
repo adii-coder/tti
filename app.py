@@ -1599,10 +1599,13 @@ elif st.session_state.mode == "Image Enhancement":
     
     if uploaded_file:
         image = Image.open(uploaded_file)
-        st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(image, caption="🎨 Uploaded Image", use_container_width=True)
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
-            st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+            with col2:
+                st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
             img_bytes = io.BytesIO()
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
@@ -1622,4 +1625,3 @@ if st.sidebar.button("🗑️ Clear History"):
 # ---- 🌟 Footer 🌟 ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
