@@ -1498,6 +1498,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
+from deep_translator import GoogleTranslator
 
 # Set your Hugging Face API key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
@@ -1550,11 +1551,21 @@ st.title("🌟 Rachna - AI Image Creator 🌟")
 st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
 
 if st.session_state.mode == "Image Generation":
-    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+    prompt = st.text_input("📝 Enter Your Prompt (Supports Multiple Languages)", "A beautiful landscape with mountains and a river")
+    language = st.selectbox("🌍 Select Language", ["Auto Detect", "English", "Hindi", "Spanish", "French", "German", "Chinese"])
+    
+    def translate_prompt(prompt, language):
+        if language == "Auto Detect":
+            return GoogleTranslator(source="auto", target="en").translate(prompt)
+        elif language != "English":
+            return GoogleTranslator(source=language.lower(), target="en").translate(prompt)
+        return prompt
+    
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
-                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                final_prompt = translate_prompt(prompt, language)
+                final_prompt = f"{final_prompt}, {style_presets[style]}" if style_presets[style] else final_prompt
                 if "history" not in st.session_state:
                     st.session_state.history = []
                 
@@ -1610,17 +1621,6 @@ elif st.session_state.mode == "Image Enhancement":
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
-
-# ---- 🌟 History Section 🌟 ----
-st.sidebar.subheader("📜 Image History")
-if "history" in st.session_state and st.session_state.history:
-    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
-        img = Image.open(io.BytesIO(img_bytes))
-        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
-        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
-
-if st.sidebar.button("🗑️ Clear History"):
-    st.session_state.history = []
 
 # ---- 🌟 Footer 🌟 ----
 st.markdown("---")
