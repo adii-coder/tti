@@ -1555,11 +1555,14 @@ if st.session_state.mode == "Image Generation":
     language = st.selectbox("🌍 Select Language", ["Auto Detect", "English", "Hindi", "Spanish", "French", "German", "Chinese"])
     
     def translate_prompt(prompt, language):
-        if language == "Auto Detect":
-            return GoogleTranslator(source="auto", target="en").translate(prompt)
-        elif language != "English":
-            return GoogleTranslator(source=language.lower(), target="en").translate(prompt)
-        return prompt
+        try:
+            if language == "Auto Detect":
+                return GoogleTranslator(source="auto", target="en").translate(prompt)
+            elif language != "English":
+                return GoogleTranslator(source=language.lower(), target="en").translate(prompt)
+            return prompt
+        except Exception:
+            return prompt
     
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
@@ -1585,6 +1588,11 @@ if st.session_state.mode == "Image Generation":
                         img_bytes = img_bytes.getvalue()
                         st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
                         st.session_state.history.append(img_bytes)
+                
+                # Display Image History
+                st.subheader("📜 Image History")
+                if st.session_state.history:
+                    st.image([Image.open(io.BytesIO(img)) for img in st.session_state.history], caption=[f"Previous Image {i+1}" for i in range(len(st.session_state.history))], use_column_width=True)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
