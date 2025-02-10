@@ -1494,7 +1494,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1568,11 +1567,13 @@ if st.session_state.mode == "Image Generation":
                     generated_image = generated_image.resize(resolution_map[resolution])
                     images.append(generated_image)
                     
+                    img_bytes = io.BytesIO()
+                    generated_image.save(img_bytes, format="PNG")
+                    img_bytes = img_bytes.getvalue()
+                    st.session_state.history.append(img_bytes)
+                    
                     with cols[i]:
                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-                        img_bytes = io.BytesIO()
-                        generated_image.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
                         st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
@@ -1610,6 +1611,7 @@ elif st.session_state.mode == "Image Enhancement":
             img_bytes = io.BytesIO()
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
+            st.session_state.history.append(img_bytes)
             st.download_button(label="💽 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 
 # ---- Image History ----
