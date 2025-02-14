@@ -1690,7 +1690,7 @@ if not st.session_state.enhancement_mode:
         "Cyberpunk": "A futuristic cyberpunk city with neon lights",
         "Anime": "Anime-style fantasy landscape",
         "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
-        "Sketch": "A pencil sketch of a medieval castle",
+        "Sketch": "A pencil sketch of {prompt}",
         "Realistic": "A highly detailed and photorealistic portrait"
     }
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
