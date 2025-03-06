@@ -1813,7 +1813,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1833,6 +1832,10 @@ def fetch_wikipedia_summary(query):
         return data.get("extract", "No summary available")
     return "No data found"
 
+def generate_image(prompt, model="stabilityai/stable-diffusion-xl"):
+    response = client.text_to_image(prompt=prompt, model=model)
+    return Image.open(io.BytesIO(response)) if response else None
+
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1847,8 +1850,14 @@ if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
 
 st.sidebar.header("📚 Teacher Assistant")
-if st.sidebar.button("📖 Wikipedia-Based Image Generation"):
-    st.switch_page("wikipedia_image_generation.py")
+wikipedia_topic = st.sidebar.text_input("Enter Topic for Wikipedia Image Generation")
+if st.sidebar.button("📖 Generate Wikipedia-Based Image"):
+    summary = fetch_wikipedia_summary(wikipedia_topic)
+    generated_image = generate_image(wikipedia_topic)
+    st.subheader(f"Wikipedia Summary for {wikipedia_topic}")
+    st.write(summary)
+    if generated_image:
+        st.image(generated_image, caption=f"Generated Image for {wikipedia_topic}", use_container_width=True)
 
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox("Select Model", ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"], index=0)
@@ -1865,6 +1874,7 @@ if st.session_state.enhancement_mode:
         image = Image.open(uploaded_file)
         st.image(image, caption="📸 Original Image", use_container_width=True)
         enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+        
         def enhance_image(image, options):
             if "Sharpen" in options:
                 image = ImageEnhance.Sharpness(image).enhance(4.0)
@@ -1880,6 +1890,7 @@ if st.session_state.enhancement_mode:
                 image = ImageEnhance.Contrast(image).enhance(3.0)
                 image = ImageEnhance.Sharpness(image).enhance(4.0)
             return image
+        
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
@@ -1887,6 +1898,7 @@ if st.session_state.enhancement_mode:
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
 
 
 
