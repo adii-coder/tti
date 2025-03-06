@@ -1841,6 +1841,11 @@ def duckduckgo_search(query):
     image_url = response.get("Image", "")
     return response.get("AbstractText", "No data found"), image_url
 
+def fetch_weather_data(location):
+    url = f"https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current_weather=true"
+    response = requests.get(url).json()
+    return response.get("current_weather", "No data found")
+
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1853,6 +1858,22 @@ def toggle_mode():
 toggle_label = "Image Enhancement" if not st.session_state.enhancement_mode else "Image Generation"
 if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
+
+st.sidebar.header("📚 Teacher Assistant")
+assistant_option = st.sidebar.radio("Select Source", ["Wikipedia", "DuckDuckGo", "Open-Meteo"], index=0)
+query = st.sidebar.text_input("Enter a search term", "Albert Einstein")
+if st.sidebar.button("🔍 Fetch Data"):
+    if assistant_option == "Wikipedia":
+        description = fetch_wikipedia_summary(query)
+        image_url = ""
+    elif assistant_option == "DuckDuckGo":
+        description, image_url = duckduckgo_search(query)
+    else:
+        description = fetch_weather_data(query)
+        image_url = ""
+    st.sidebar.text_area("Fetched Description", description, height=100)
+    if image_url:
+        st.sidebar.image(image_url, caption="🔍 Found Image", use_container_width=True)
 
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox("Select Model", ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"], index=0)
@@ -1892,42 +1913,5 @@ if st.session_state.enhancement_mode:
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 
-if not st.session_state.enhancement_mode:
-    st.title("🌟 Rachna - AI Image Creator 🌟")
-    query = st.text_input("🔍 Search for a person or object", "Albert Einstein")
-    source = st.radio("Select Data Source", ["Wikipedia", "DuckDuckGo"], index=0)
-    if st.button("🔎 Fetch Description"):
-        if source == "Wikipedia":
-            description = fetch_wikipedia_summary(query)
-            image_url = ""
-        else:
-            description, image_url = duckduckgo_search(query)
-        st.text_area("Fetched Description", description, height=100)
-        if image_url:
-            st.image(image_url, caption="🔍 Found Image", use_container_width=True)
-    prompt = st.text_area("📝 Final Prompt for Image Generation", "A beautiful landscape with mountains and a river")
-    if st.button("🚀 Generate Image"):
-        with st.spinner("Generating... ⏳"):
-            try:
-                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-                if "history" not in st.session_state:
-                    st.session_state.history = []
-                images = []
-                cols = st.columns(num_variations)
-                for i in range(num_variations):
-                    seed = random.randint(1, 1000000)
-                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
-                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
-                    generated_image = generated_image.resize(resolution_map[resolution])
-                    images.append(generated_image)
-                    with cols[i]:
-                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-                        img_bytes = io.BytesIO()
-                        generated_image.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
-                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
-                        st.session_state.history.append(img_bytes)
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
 
 
