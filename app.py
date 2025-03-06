@@ -1637,9 +1637,189 @@
 
 
 
+# import streamlit as st
+# from huggingface_hub import InferenceClient
+# from PIL import Image, ImageEnhance, ImageOps
+# import io
+# import random
+
+# # Set Hugging Face API Key from Streamlit Secrets
+# HF_API_KEY = st.secrets["HF_API_KEY"]
+# client = InferenceClient(api_key=HF_API_KEY)
+
+# # Streamlit UI Configuration
+# st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
+
+# # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
+# st.sidebar.header("⚙️ Feature & Quality Options")
+
+# # Initialize session state for enhancement mode
+# if "enhancement_mode" not in st.session_state:
+#     st.session_state.enhancement_mode = False
+
+# def toggle_mode():
+#     st.session_state.enhancement_mode = not st.session_state.enhancement_mode
+
+# toggle_label = "Image Enhancement" if not st.session_state.enhancement_mode else "Image Generation"
+# if st.sidebar.button(f"🖼️ {toggle_label}"):
+#     toggle_mode()
+
+# # ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) 🌟 ----
+# if not st.session_state.enhancement_mode:
+#     model = st.sidebar.selectbox(
+#         "Select Model",
+#         [
+#             "stabilityai/stable-diffusion-3.5-large",
+#             "stabilityai/stable-diffusion-xl",
+#             "stabilityai/stable-diffusion-2-1"
+#         ],
+#         index=0
+#     )
+
+#     resolution_map = {
+#         "1280x720 (720p)": (1280, 720),
+#         "1920x1080 (1080p)": (1920, 1080),
+#         "2560x1440 (2K)": (2560, 1440),
+#         "3840x2160 (4K)": (3840, 2160)
+#     }
+#     resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
+#     num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
+
+#     style_presets = {
+#         "None": "",
+#         "Cyberpunk": "A futuristic cyberpunk city with neon lights",
+#         "Anime": "Anime-style fantasy landscape",
+#         "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
+#         "Sketch": "A pencil sketch of {prompt}",
+#         "Realistic": "A highly detailed and photorealistic portrait"
+#     }
+#     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
+
+# # ---- 🌟 Image Enhancement Mode 🌟 ----
+# if st.session_state.enhancement_mode:
+#     st.title("✨ Image Enhancement Tool")
+#     st.markdown("Enhance your images with AI-powered filters! 🎨")
+
+#     uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
+
+#     if uploaded_file:
+#         image = Image.open(uploaded_file)
+#         st.image(image, caption="📸 Original Image", use_container_width=True)
+
+#         enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+
+#         def enhance_image(image, options):
+#             if "Sharpen" in options:
+#                 image = ImageEnhance.Sharpness(image).enhance(4.0)
+#             if "Contrast" in options:
+#                 image = ImageEnhance.Contrast(image).enhance(2.5)
+#             if "Brightness" in options:
+#                 image = ImageEnhance.Brightness(image).enhance(1.8)
+#             if "Saturation" in options:
+#                 image = ImageEnhance.Color(image).enhance(2.5)
+#             if "Grayscale" in options:
+#                 image = ImageOps.grayscale(image)
+#             if "HDR Effect" in options:
+#                 image = ImageEnhance.Contrast(image).enhance(3.0)
+#                 image = ImageEnhance.Sharpness(image).enhance(4.0)
+#             return image
+
+#         if st.button("✨ Enhance Image"):
+#             enhanced_image = enhance_image(image, enhance_options)
+#             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+#             img_bytes = io.BytesIO()
+#             enhanced_image.save(img_bytes, format="PNG")
+#             img_bytes = img_bytes.getvalue()
+#             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
+# # ---- 🌟 Image Generation Mode 🌟 ----
+# if not st.session_state.enhancement_mode:
+#     st.title("🌟 Rachna - AI Image Creator 🌟")
+#     st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+
+#     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+
+#     if st.button("🚀 Generate Image"):
+#         with st.spinner("Generating... ⏳"):
+#             try:
+#                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+
+#                 if "history" not in st.session_state:
+#                     st.session_state.history = []
+
+#                 images = []
+#                 cols = st.columns(num_variations)
+
+#                 for i in range(num_variations):
+#                     seed = random.randint(1, 1000000)
+#                     variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+#                     generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+#                     generated_image = generated_image.resize(resolution_map[resolution])
+#                     images.append(generated_image)
+
+#                     with cols[i]:
+#                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+#                         img_bytes = io.BytesIO()
+#                         generated_image.save(img_bytes, format="PNG")
+#                         img_bytes = img_bytes.getvalue()
+#                         st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+#                         st.session_state.history.append(img_bytes)
+#             except Exception as e:
+#                 st.error(f"❌ Error: {e}")
+
+# # ---- 🌟 Sidebar - Image History 🌟 ----
+# st.sidebar.subheader("📜 Image History")
+# if "history" in st.session_state and st.session_state.history:
+#     for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+#         img = Image.open(io.BytesIO(img_bytes))
+#         st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+#         st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+# if st.sidebar.button("🗑️ Clear History"):
+#     st.session_state.history = []
+
+# st.markdown("---")
+# st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
+import requests
 import io
 import random
 
@@ -1647,13 +1827,22 @@ import random
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# Streamlit UI Configuration
+def fetch_wikipedia_summary(query):
+    url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("extract", "No summary available")
+    return "No data found"
+
+def duckduckgo_search(query):
+    url = f"https://api.duckduckgo.com/?q={query}&format=json"
+    response = requests.get(url).json()
+    return response.get("AbstractText", "No data found")
+
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
-# ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
-
-# Initialize session state for enhancement mode
 if "enhancement_mode" not in st.session_state:
     st.session_state.enhancement_mode = False
 
@@ -1664,50 +1853,21 @@ toggle_label = "Image Enhancement" if not st.session_state.enhancement_mode else
 if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
 
-# ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) 🌟 ----
 if not st.session_state.enhancement_mode:
-    model = st.sidebar.selectbox(
-        "Select Model",
-        [
-            "stabilityai/stable-diffusion-3.5-large",
-            "stabilityai/stable-diffusion-xl",
-            "stabilityai/stable-diffusion-2-1"
-        ],
-        index=0
-    )
-
-    resolution_map = {
-        "1280x720 (720p)": (1280, 720),
-        "1920x1080 (1080p)": (1920, 1080),
-        "2560x1440 (2K)": (2560, 1440),
-        "3840x2160 (4K)": (3840, 2160)
-    }
+    model = st.sidebar.selectbox("Select Model", ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"], index=0)
+    resolution_map = {"1280x720 (720p)": (1280, 720), "1920x1080 (1080p)": (1920, 1080), "2560x1440 (2K)": (2560, 1440), "3840x2160 (4K)": (3840, 2160)}
     resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
     num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
-
-    style_presets = {
-        "None": "",
-        "Cyberpunk": "A futuristic cyberpunk city with neon lights",
-        "Anime": "Anime-style fantasy landscape",
-        "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
-        "Sketch": "A pencil sketch of {prompt}",
-        "Realistic": "A highly detailed and photorealistic portrait"
-    }
+    style_presets = {"None": "", "Cyberpunk": "A futuristic cyberpunk city with neon lights", "Anime": "Anime-style fantasy landscape", "Oil Painting": "A beautiful oil painting of a sunset over the mountains", "Sketch": "A pencil sketch of {prompt}", "Realistic": "A highly detailed and photorealistic portrait"}
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
-# ---- 🌟 Image Enhancement Mode 🌟 ----
 if st.session_state.enhancement_mode:
     st.title("✨ Image Enhancement Tool")
-    st.markdown("Enhance your images with AI-powered filters! 🎨")
-
     uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
-
     if uploaded_file:
         image = Image.open(uploaded_file)
         st.image(image, caption="📸 Original Image", use_container_width=True)
-
         enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
-
         def enhance_image(image, options):
             if "Sharpen" in options:
                 image = ImageEnhance.Sharpness(image).enhance(4.0)
@@ -1723,7 +1883,6 @@ if st.session_state.enhancement_mode:
                 image = ImageEnhance.Contrast(image).enhance(3.0)
                 image = ImageEnhance.Sharpness(image).enhance(4.0)
             return image
-
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
@@ -1732,31 +1891,28 @@ if st.session_state.enhancement_mode:
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 
-# ---- 🌟 Image Generation Mode 🌟 ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
-    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
-
-    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
-
+    query = st.text_input("🔍 Search for a person or object", "Albert Einstein")
+    source = st.radio("Select Data Source", ["Wikipedia", "DuckDuckGo"], index=0)
+    if st.button("🔎 Fetch Description"):
+        description = fetch_wikipedia_summary(query) if source == "Wikipedia" else duckduckgo_search(query)
+        st.text_area("Fetched Description", description, height=100)
+    prompt = st.text_area("📝 Final Prompt for Image Generation", "A beautiful landscape with mountains and a river")
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-
                 if "history" not in st.session_state:
                     st.session_state.history = []
-
                 images = []
                 cols = st.columns(num_variations)
-
                 for i in range(num_variations):
                     seed = random.randint(1, 1000000)
                     variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
                     generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
                     generated_image = generated_image.resize(resolution_map[resolution])
                     images.append(generated_image)
-
                     with cols[i]:
                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
                         img_bytes = io.BytesIO()
@@ -1766,21 +1922,5 @@ if not st.session_state.enhancement_mode:
                         st.session_state.history.append(img_bytes)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
-
-# ---- 🌟 Sidebar - Image History 🌟 ----
-st.sidebar.subheader("📜 Image History")
-if "history" in st.session_state and st.session_state.history:
-    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
-        img = Image.open(io.BytesIO(img_bytes))
-        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
-        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
-
-if st.sidebar.button("🗑️ Clear History"):
-    st.session_state.history = []
-
-st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
-
 
 
