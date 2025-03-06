@@ -1815,7 +1815,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1835,17 +1834,6 @@ def fetch_wikipedia_summary(query):
         return data.get("extract", "No summary available")
     return "No data found"
 
-def duckduckgo_search(query):
-    url = f"https://api.duckduckgo.com/?q={query}&format=json&iax=images&ia=images"
-    response = requests.get(url).json()
-    image_url = response.get("Image", "")
-    return response.get("AbstractText", "No data found"), image_url
-
-def fetch_weather_data(location):
-    url = f"https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current_weather=true"
-    response = requests.get(url).json()
-    return response.get("current_weather", "No data found")
-
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1860,20 +1848,18 @@ if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
 
 st.sidebar.header("📚 Teacher Assistant")
-assistant_option = st.sidebar.radio("Select Source", ["Wikipedia", "DuckDuckGo", "Open-Meteo"], index=0)
+st.sidebar.subheader("Wikipedia-Based Image Generation")
 query = st.sidebar.text_input("Enter a search term", "Albert Einstein")
-if st.sidebar.button("🔍 Fetch Data"):
-    if assistant_option == "Wikipedia":
-        description = fetch_wikipedia_summary(query)
-        image_url = ""
-    elif assistant_option == "DuckDuckGo":
-        description, image_url = duckduckgo_search(query)
-    else:
-        description = fetch_weather_data(query)
-        image_url = ""
+if st.sidebar.button("🔍 Fetch Data & Generate Image"):
+    description = fetch_wikipedia_summary(query)
     st.sidebar.text_area("Fetched Description", description, height=100)
-    if image_url:
-        st.sidebar.image(image_url, caption="🔍 Found Image", use_container_width=True)
+    
+    if description and description != "No data found":
+        prompt = f"{query} - {description}"
+        st.sidebar.write("Generating Image...")
+        image_bytes = client.text_to_image(prompt, model="stabilityai/stable-diffusion-3.5-large")
+        image = Image.open(io.BytesIO(image_bytes))
+        st.sidebar.image(image, caption="🖼️ AI-Generated Image", use_container_width=True)
 
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox("Select Model", ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"], index=0)
@@ -1912,6 +1898,7 @@ if st.session_state.enhancement_mode:
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
 
 
 
