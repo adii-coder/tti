@@ -1836,9 +1836,10 @@ def fetch_wikipedia_summary(query):
     return "No data found"
 
 def duckduckgo_search(query):
-    url = f"https://api.duckduckgo.com/?q={query}&format=json"
+    url = f"https://api.duckduckgo.com/?q={query}&format=json&iax=images&ia=images"
     response = requests.get(url).json()
-    return response.get("AbstractText", "No data found")
+    image_url = response.get("Image", "")
+    return response.get("AbstractText", "No data found"), image_url
 
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
@@ -1896,8 +1897,14 @@ if not st.session_state.enhancement_mode:
     query = st.text_input("🔍 Search for a person or object", "Albert Einstein")
     source = st.radio("Select Data Source", ["Wikipedia", "DuckDuckGo"], index=0)
     if st.button("🔎 Fetch Description"):
-        description = fetch_wikipedia_summary(query) if source == "Wikipedia" else duckduckgo_search(query)
+        if source == "Wikipedia":
+            description = fetch_wikipedia_summary(query)
+            image_url = ""
+        else:
+            description, image_url = duckduckgo_search(query)
         st.text_area("Fetched Description", description, height=100)
+        if image_url:
+            st.image(image_url, caption="🔍 Found Image", use_container_width=True)
     prompt = st.text_area("📝 Final Prompt for Image Generation", "A beautiful landscape with mountains and a river")
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
