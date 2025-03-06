@@ -1814,7 +1814,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1848,18 +1847,8 @@ if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
 
 st.sidebar.header("📚 Teacher Assistant")
-st.sidebar.subheader("Wikipedia-Based Image Generation")
-query = st.sidebar.text_input("Enter a search term", "Albert Einstein")
-if st.sidebar.button("🔍 Fetch Data & Generate Image"):
-    description = fetch_wikipedia_summary(query)
-    st.sidebar.text_area("Fetched Description", description, height=100)
-    
-    if description and description != "No data found":
-        prompt = f"{query} - {description}"
-        st.sidebar.write("Generating Image...")
-        image_bytes = client.text_to_image(prompt, model="stabilityai/stable-diffusion-3.5-large")
-        image = Image.open(io.BytesIO(image_bytes))
-        st.sidebar.image(image, caption="🖼️ AI-Generated Image", use_container_width=True)
+if st.sidebar.button("📖 Wikipedia-Based Image Generation"):
+    st.switch_page("wikipedia_image_generation.py")
 
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox("Select Model", ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"], index=0)
@@ -1898,6 +1887,7 @@ if st.session_state.enhancement_mode:
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
 
 
 
