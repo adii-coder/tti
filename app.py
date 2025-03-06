@@ -1812,7 +1812,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1831,6 +1830,16 @@ def fetch_wikipedia_summary(query):
         data = response.json()
         return data.get("extract", "No summary available")
     return "No data found"
+
+def fetch_wikipedia_image(query):
+    url = f"https://en.wikipedia.org/api/rest_v1/page/media-list/{query.replace(' ', '_')}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        items = data.get("items", [])
+        if items:
+            return items[0].get("src", None)
+    return None
 
 def generate_image(prompt, model="stabilityai/stable-diffusion-xl"):
     response = client.text_to_image(prompt=prompt, model=model)
@@ -1853,9 +1862,12 @@ st.sidebar.header("📚 Teacher Assistant")
 wikipedia_topic = st.sidebar.text_input("Enter Topic for Wikipedia Image Generation")
 if st.sidebar.button("📖 Generate Wikipedia-Based Image"):
     summary = fetch_wikipedia_summary(wikipedia_topic)
+    wiki_image_url = fetch_wikipedia_image(wikipedia_topic)
     generated_image = generate_image(wikipedia_topic)
     st.subheader(f"Wikipedia Summary for {wikipedia_topic}")
     st.write(summary)
+    if wiki_image_url:
+        st.image(wiki_image_url, caption=f"Wikipedia Image for {wikipedia_topic}", use_container_width=True)
     if generated_image:
         st.image(generated_image, caption=f"Generated Image for {wikipedia_topic}", use_container_width=True)
 
@@ -1898,6 +1910,7 @@ if st.session_state.enhancement_mode:
             enhanced_image.save(img_bytes, format="PNG")
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
 
 
 
