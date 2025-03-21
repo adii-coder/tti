@@ -1812,7 +1812,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1851,7 +1850,7 @@ st.markdown("""
         }
         .stButton>button:active {
             background: linear-gradient(90deg, #d32f2f, #d35400);
-            color: white !important;
+            color: white !important;  /* Ensures text remains visible */
             transform: scale(1.02);
         }
 
@@ -1991,5 +1990,7 @@ if not st.session_state.enhancement_mode:
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
 
