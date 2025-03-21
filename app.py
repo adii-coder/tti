@@ -1814,7 +1814,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1822,9 +1821,8 @@ import io
 import random
 import time
 
-# Set Hugging Face API Key from Streamlit Secrets
-HF_API_KEY = st.secrets["HF_API_KEY"]
-client = InferenceClient(api_key=HF_API_KEY)
+# ---- ✅ Set Page Config FIRST ----
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 # ---- 🌟 Custom Styling & Animations 🌟 ----
 st.markdown("""
@@ -1835,7 +1833,7 @@ st.markdown("""
             color: white;
             border-right: 3px solid #ff944b;
         }
-
+        
         /* Button Enhancements */
         .stButton>button {
             background: linear-gradient(90deg, #ff4b4b, #ff944b);
