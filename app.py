@@ -1813,7 +1813,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1843,11 +1842,17 @@ st.markdown("""
             padding: 12px;
             transition: 0.3s;
             box-shadow: 0px 4px 10px rgba(255, 72, 72, 0.3);
+            border: none;
         }
         .stButton>button:hover {
             background: linear-gradient(90deg, #e63939, #e67e22);
             transform: scale(1.07);
             box-shadow: 0px 6px 14px rgba(255, 72, 72, 0.5);
+        }
+        .stButton>button:active {
+            background: linear-gradient(90deg, #d32f2f, #d35400);
+            color: white !important;
+            transform: scale(1.02);
         }
 
         /* Smooth Image Fade-in */
@@ -1878,11 +1883,6 @@ st.markdown("""
 
 # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
-
-# Dark Mode Toggle
-dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
-if dark_mode:
-    st.markdown('<style>body { background-color: #121212; color: white; }</style>', unsafe_allow_html=True)
 
 # Initialize session state for enhancement mode
 if "enhancement_mode" not in st.session_state:
@@ -1959,11 +1959,6 @@ if st.session_state.enhancement_mode:
             enhanced_image = enhance_image(image, enhance_options)
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True, output_format="PNG", className="fade-in")
 
-            # Download Button
-            buf = io.BytesIO()
-            enhanced_image.save(buf, format="PNG")
-            st.download_button("⬇️ Download Enhanced Image", buf.getvalue(), "enhanced_image.png", "image/png")
-
 # ---- 🌟 Image Generation Mode 🌟 ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
@@ -1993,11 +1988,8 @@ if not st.session_state.enhancement_mode:
                     with cols[i]:
                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True, output_format="PNG", className="fade-in")
 
-                        buf = io.BytesIO()
-                        generated_image.save(buf, format="PNG")
-                        st.download_button("⬇️ Download", buf.getvalue(), f"generated_image_{i+1}.png", "image/png")
-
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
