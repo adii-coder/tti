@@ -1820,6 +1820,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
+import time  # For smooth progress bar animation
 
 # Set Hugging Face API Key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
@@ -1828,54 +1829,52 @@ client = InferenceClient(api_key=HF_API_KEY)
 # Streamlit UI Configuration
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
-# ---- 🌟 Custom CSS for Animations & UI Enhancements 🌟 ----
+# ---- 🌟 Custom CSS for Pro UI & Animations 🌟 ----
 st.markdown(
     """
     <style>
+        /* Modern Sidebar */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #1f1f1f, #333333);
+            color: white;
+        }
+
+        /* Custom Buttons */
+        .stButton>button {
+            background: linear-gradient(90deg, #ff4b4b, #ff944b);
+            color: white;
+            border-radius: 12px;
+            padding: 10px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .stButton>button:hover {
+            background: linear-gradient(90deg, #e63939, #e67e22);
+            transform: scale(1.05);
+        }
+
+        /* Smooth Image Fade-in */
+        .fade-in {
+            animation: fadeIn 1.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         /* Spinner Animation */
         .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #ff4b4b;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid #ff944b;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
             margin: auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        /* Fade-in Effect */
-        .fade-in {
-            animation: fadeIn ease 1.5s;
-            -webkit-animation: fadeIn ease 1.5s;
-            -moz-animation: fadeIn ease 1.5s;
-            -o-animation: fadeIn ease 1.5s;
-            -ms-animation: fadeIn ease 1.5s;
-        }
-        @keyframes fadeIn {
-            0% {opacity: 0;}
-            100% {opacity: 1;}
-        }
-
-        /* Sidebar UI */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #1f1f1f, #333333);
-            color: white;
-        }
-
-        /* Buttons UI */
-        .stButton>button {
-            background: #ff4b4b;
-            color: white;
-            border-radius: 10px;
-            transition: 0.3s;
-            font-weight: bold;
-        }
-        .stButton>button:hover {
-            background: #e63939;
         }
     </style>
     """,
@@ -1958,12 +1957,8 @@ if st.session_state.enhancement_mode:
 
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
-            st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
-            img_bytes = io.BytesIO()
-            enhanced_image.save(img_bytes, format="PNG")
-            img_bytes = img_bytes.getvalue()
-            st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
-
+            st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True, output_format="PNG", className="fade-in")
+            
 # ---- 🌟 Image Generation Mode 🌟 ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
@@ -1972,9 +1967,13 @@ if not st.session_state.enhancement_mode:
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
 
     if st.button("🚀 Generate Image"):
-        st.markdown('<div class="loading-spinner"></div>', unsafe_allow_html=True)  # Show spinner animation
-
         with st.spinner("Generating... ⏳"):
+            progress_bar = st.progress(0)  # Progress Bar Start
+            
+            for percent in range(1, 101, 10):
+                time.sleep(0.1)
+                progress_bar.progress(percent)
+
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
 
@@ -1992,11 +1991,10 @@ if not st.session_state.enhancement_mode:
                     images.append(generated_image)
 
                     with cols[i]:
-                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True, output_format="PNG", className="fade-in")
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
