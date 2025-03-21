@@ -1820,42 +1820,41 @@ from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
-import time  # For smooth progress bar animation
+import time
 
 # Set Hugging Face API Key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# Streamlit UI Configuration
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
-
-# ---- 🌟 Custom CSS for Pro UI & Animations 🌟 ----
-st.markdown(
-    """
+# ---- 🌟 Custom Styling & Animations 🌟 ----
+st.markdown("""
     <style>
-        /* Modern Sidebar */
+        /* Modern Sidebar Styling */
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #1f1f1f, #333333);
+            background: #1f1f1f;
             color: white;
+            border-right: 3px solid #ff944b;
         }
 
-        /* Custom Buttons */
+        /* Button Enhancements */
         .stButton>button {
             background: linear-gradient(90deg, #ff4b4b, #ff944b);
             color: white;
-            border-radius: 12px;
-            padding: 10px;
             font-weight: bold;
+            border-radius: 12px;
+            padding: 12px;
             transition: 0.3s;
+            box-shadow: 0px 4px 10px rgba(255, 72, 72, 0.3);
         }
         .stButton>button:hover {
             background: linear-gradient(90deg, #e63939, #e67e22);
-            transform: scale(1.05);
+            transform: scale(1.07);
+            box-shadow: 0px 6px 14px rgba(255, 72, 72, 0.5);
         }
 
         /* Smooth Image Fade-in */
         .fade-in {
-            animation: fadeIn 1.5s ease-in-out;
+            animation: fadeIn 1.2s ease-in-out;
         }
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -1877,9 +1876,10 @@ st.markdown(
             100% { transform: rotate(360deg); }
         }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
+
+# ---- 🌟 Streamlit Page Config 🌟 ----
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1895,7 +1895,7 @@ toggle_label = "Image Enhancement" if not st.session_state.enhancement_mode else
 if st.sidebar.button(f"🖼️ {toggle_label}"):
     toggle_mode()
 
-# ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) 🌟 ----
+# ---- 🌟 Sidebar - Model Selection 🌟 ----
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox(
         "Select Model",
@@ -1958,7 +1958,7 @@ if st.session_state.enhancement_mode:
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True, output_format="PNG", className="fade-in")
-            
+
 # ---- 🌟 Image Generation Mode 🌟 ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
@@ -1968,8 +1968,8 @@ if not st.session_state.enhancement_mode:
 
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
-            progress_bar = st.progress(0)  # Progress Bar Start
-            
+            progress_bar = st.progress(0)
+
             for percent in range(1, 101, 10):
                 time.sleep(0.1)
                 progress_bar.progress(percent)
@@ -1977,18 +1977,13 @@ if not st.session_state.enhancement_mode:
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
 
-                if "history" not in st.session_state:
-                    st.session_state.history = []
-
                 images = []
                 cols = st.columns(num_variations)
 
                 for i in range(num_variations):
                     seed = random.randint(1, 1000000)
-                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
-                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+                    generated_image = client.text_to_image(final_prompt, model=model, seed=seed)
                     generated_image = generated_image.resize(resolution_map[resolution])
-                    images.append(generated_image)
 
                     with cols[i]:
                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True, output_format="PNG", className="fade-in")
