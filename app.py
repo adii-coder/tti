@@ -1826,7 +1826,7 @@ st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOG
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
+# # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
 # Initialize session state for enhancement mode
@@ -1955,5 +1955,5 @@ if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH and ADITYA TIWARI ")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiast ADITYA TIWARI")
 
