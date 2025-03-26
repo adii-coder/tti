@@ -1823,6 +1823,9 @@ import random
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
+# Add Logo to the Web App
+st.sidebar.image("RACHNA_LOGO.png", use_column_width=True)
+
 # Streamlit UI Configuration
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
