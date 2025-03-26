@@ -1819,14 +1819,27 @@ from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
 
-# Set Streamlit Page Configuration with Favicon (Logo in Browser Tab)
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOGO.png", layout="wide")
-
 # Set Hugging Face API Key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
+# Streamlit UI Configuration
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOGO.png", layout="wide")
+
+# Custom CSS to match the logo's color theme
+st.markdown(
+    """
+    <style>
+    body { background-color: #1E1E2F; color: white; }
+    .stButton>button { background-color: #FF9800; color: white; font-size: 16px; }
+    .stSelectbox, .stRadio, .stSlider { color: #FF9800; }
+    .stSidebar { background-color: #252540; color: white; }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
 # Initialize session state for enhancement mode
@@ -1836,8 +1849,8 @@ if "enhancement_mode" not in st.session_state:
 def toggle_mode():
     st.session_state.enhancement_mode = not st.session_state.enhancement_mode
 
-toggle_label = "Image Enhancement" if not st.session_state.enhancement_mode else "Image Generation"
-if st.sidebar.button(f"🖼️ {toggle_label}"):
+toggle_label = "🖼️ Image Enhancement" if not st.session_state.enhancement_mode else "🎨 Image Generation"
+if st.sidebar.button(toggle_label):
     toggle_mode()
 
 # ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) 🌟 ----
@@ -1955,5 +1968,4 @@ if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiast ADITYA TIWARI")
-
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
