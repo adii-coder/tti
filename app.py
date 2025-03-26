@@ -1823,23 +1823,34 @@ import random
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# Streamlit UI Configuration
+# ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOGO.png", layout="wide")
 
-# Custom CSS to match the logo's color theme
-st.markdown(
-    """
-    <style>
-    body { background-color: #1E1E2F; color: white; }
-    .stButton>button { background-color: #FF9800; color: white; font-size: 16px; }
-    .stSelectbox, .stRadio, .stSlider { color: #FF9800; }
-    .stSidebar { background-color: #252540; color: white; }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# ---- 🌟 Theme Management ----
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
 
-# ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
+def toggle_theme():
+    st.session_state.dark_mode = not st.session_state.dark_mode
+
+theme_style = """
+    <style>
+        body { background-color: #ffffff; color: #000000; }
+        .sidebar { background-color: #f8f9fa; }
+    </style>
+""" if not st.session_state.dark_mode else """
+    <style>
+        body { background-color: #1e1e1e; color: #ffffff; }
+        .sidebar { background-color: #2c2c2c; }
+    </style>
+"""
+
+st.markdown(theme_style, unsafe_allow_html=True)
+
+# Add dark mode toggle button
+st.sidebar.button("🌙 Toggle Dark Mode" if not st.session_state.dark_mode else "☀️ Toggle Light Mode", on_click=toggle_theme)
+
+# ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
 # Initialize session state for enhancement mode
@@ -1847,13 +1858,15 @@ if "enhancement_mode" not in st.session_state:
     st.session_state.enhancement_mode = False
 
 def toggle_mode():
-    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
+    if st.session_state.enhancement_mode:
+        st.session_state.enhancement_mode = False
+    else:
+        st.session_state.enhancement_mode = True
 
-toggle_label = "🖼️ Image Enhancement" if not st.session_state.enhancement_mode else "🎨 Image Generation"
-if st.sidebar.button(toggle_label):
-    toggle_mode()
+toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
+st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
 
-# ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) 🌟 ----
+# ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) ----
 if not st.session_state.enhancement_mode:
     model = st.sidebar.selectbox(
         "Select Model",
@@ -1884,7 +1897,7 @@ if not st.session_state.enhancement_mode:
     }
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
-# ---- 🌟 Image Enhancement Mode 🌟 ----
+# ---- 🌟 Image Enhancement Mode ----
 if st.session_state.enhancement_mode:
     st.title("✨ Image Enhancement Tool")
     st.markdown("Enhance your images with AI-powered filters! 🎨")
@@ -1921,7 +1934,7 @@ if st.session_state.enhancement_mode:
             img_bytes = img_bytes.getvalue()
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 
-# ---- 🌟 Image Generation Mode 🌟 ----
+# ---- 🌟 Image Generation Mode ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
     st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
@@ -1956,7 +1969,7 @@ if not st.session_state.enhancement_mode:
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-# ---- 🌟 Sidebar - Image History 🌟 ----
+# ---- 🌟 Sidebar - Image History ----
 st.sidebar.subheader("📜 Image History")
 if "history" in st.session_state and st.session_state.history:
     for idx, img_bytes in enumerate(st.session_state.history[-5:]):
