@@ -1819,18 +1819,21 @@ from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
 
+# Set Streamlit Page Configuration
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
+
 # Set Hugging Face API Key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
-# Add Logo to the Web App
+# Add Logo to Sidebar
 st.sidebar.image("RACHNA_LOGO.png", use_column_width=True)
 
-# Streamlit UI Configuration
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
-
-# Add logo at the top
-st.image("RACHNA_LOGO.png", width=150)
+# Add Centered Logo at the Top
+st.markdown(
+    "<div style='text-align: center;'><img src='RACHNA_LOGO.png' width='200'></div>",
+    unsafe_allow_html=True
+)
 
 # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1961,4 +1964,4 @@ if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH and AADITYA TIWARI ")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH and ADITYA TIWARI ")
