@@ -1826,14 +1826,6 @@ client = InferenceClient(api_key=HF_API_KEY)
 # ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
 
-# ---- 🌟 Set White Theme with Logo Colors ----
-st.markdown("""
-    <style>
-        body { background-color: #ffffff; color: #000000; }
-        .sidebar { background-color: #f8f9fa; }
-    </style>
-""", unsafe_allow_html=True)
-
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
@@ -1962,5 +1954,4 @@ if st.sidebar.button("🗑️ Clear History"):
     st.session_state.history = []
 
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
-
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
