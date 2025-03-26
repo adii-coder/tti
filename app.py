@@ -1826,29 +1826,13 @@ client = InferenceClient(api_key=HF_API_KEY)
 # ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOGO.png", layout="wide")
 
-# ---- 🌟 Theme Management ----
-if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = False
-
-def toggle_theme():
-    st.session_state.dark_mode = not st.session_state.dark_mode
-
-theme_style = """
+# ---- 🌟 Set White Theme with Logo Colors ----
+st.markdown("""
     <style>
         body { background-color: #ffffff; color: #000000; }
         .sidebar { background-color: #f8f9fa; }
     </style>
-""" if not st.session_state.dark_mode else """
-    <style>
-        body { background-color: #1e1e1e; color: #ffffff; }
-        .sidebar { background-color: #2c2c2c; }
-    </style>
-"""
-
-st.markdown(theme_style, unsafe_allow_html=True)
-
-# Add dark mode toggle button
-st.sidebar.button("🌙 Toggle Dark Mode" if not st.session_state.dark_mode else "☀️ Toggle Light Mode", on_click=toggle_theme)
+""", unsafe_allow_html=True)
 
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -1858,10 +1842,7 @@ if "enhancement_mode" not in st.session_state:
     st.session_state.enhancement_mode = False
 
 def toggle_mode():
-    if st.session_state.enhancement_mode:
-        st.session_state.enhancement_mode = False
-    else:
-        st.session_state.enhancement_mode = True
+    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
 
 toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
 st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
@@ -1982,3 +1963,4 @@ if st.sidebar.button("🗑️ Clear History"):
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts ADITYA TIWARI")
+
