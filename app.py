@@ -1824,7 +1824,7 @@ HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
 # ---- 🌟 UI Configuration ----
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA_LOGO.png", layout="wide")
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
 
 # ---- 🌟 Set White Theme with Logo Colors ----
 st.markdown("""
