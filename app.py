@@ -1827,7 +1827,7 @@ client = InferenceClient(api_key=HF_API_KEY)
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="🎨", layout="wide")
 
 # Add logo at the top
-st.image("logo.png", width=150)
+st.image("RACHNA_LOGO.png", width=150)
 
 # ---- 🌟 Sidebar - Feature & Quality Options 🌟 ----
 st.sidebar.header("⚙️ Feature & Quality Options")
