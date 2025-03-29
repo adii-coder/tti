@@ -2035,10 +2035,9 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
-from PIL import Image, ImageEnhance, ImageOps, ImageFilter
+from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
 
@@ -2090,7 +2089,7 @@ if not st.session_state.enhancement_mode:
         "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
         "Sketch": "A pencil sketch of {prompt}",
         "Realistic": "A highly detailed and photorealistic portrait",
-        "Ghibli Style": "A stunning Studio Ghibli-style artwork, soft colors, warm lighting, whimsical atmosphere, hand-painted textures"
+        "Studio Ghibli": "A magical Studio Ghibli-style animated scene with vibrant colors and soft lighting"
     }
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
@@ -2107,24 +2106,9 @@ if st.session_state.enhancement_mode:
 
         enhance_options = st.multiselect(
             "🔍 Select Enhancements", 
-            ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect", "Ghibli Filter"], 
+            ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect", "Studio Ghibli Style"], 
             default=[]
         )
-
-        def apply_ghibli_filter(image):
-            """Applies a Studio Ghibli-style filter to an image."""
-            image = ImageEnhance.Color(image).enhance(1.8)  # Enhance color vibrancy
-            image = ImageEnhance.Contrast(image).enhance(1.3)  # Slight contrast boost
-            image = ImageEnhance.Brightness(image).enhance(1.2)  # Soft brightness increase
-            
-            # Apply a soft blur and smooth edges for a painterly effect
-            image = image.filter(ImageFilter.SMOOTH_MORE)
-            image = image.filter(ImageFilter.GaussianBlur(0.5))
-
-            # Add a soft warm overlay for Ghibli’s signature look
-            overlay = Image.new("RGBA", image.size, (255, 230, 200, 40))  # Warm pastel tone
-            image = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
-            return image
 
         def enhance_image(image, options):
             if "Sharpen" in options:
@@ -2140,8 +2124,13 @@ if st.session_state.enhancement_mode:
             if "HDR Effect" in options:
                 image = ImageEnhance.Contrast(image).enhance(3.0)
                 image = ImageEnhance.Sharpness(image).enhance(4.0)
-            if "Ghibli Filter" in options:
-                image = apply_ghibli_filter(image)
+            if "Studio Ghibli Style" in options:
+                # Convert to Studio Ghibli style using AI
+                with st.spinner("Applying Ghibli Magic... ✨"):
+                    img_bytes = io.BytesIO()
+                    image.save(img_bytes, format="PNG")
+                    img_bytes = img_bytes.getvalue()
+                    image = client.image_to_image(img_bytes, prompt="Studio Ghibli-style animation with vibrant colors and soft lighting")
             return image
 
         if st.button("✨ Enhance Image"):
@@ -2162,7 +2151,7 @@ if not st.session_state.enhancement_mode:
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
-                final_prompt = f"{prompt}, {style_presets[style]}, inspired by Studio Ghibli" if style_presets[style] else prompt
+                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
 
                 if "history" not in st.session_state:
                     st.session_state.history = []
@@ -2186,6 +2175,17 @@ if not st.session_state.enhancement_mode:
                         st.session_state.history.append(img_bytes)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
+
+# ---- 🌟 Sidebar - Image History ----
+st.sidebar.subheader("📜 Image History")
+if "history" in st.session_state and st.session_state.history:
+    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+        img = Image.open(io.BytesIO(img_bytes))
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+if st.sidebar.button("🗑️ Clear History"):
+    st.session_state.history = []
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
