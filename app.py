@@ -2048,50 +2048,54 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
+import firebase_admin
+from firebase_admin import credentials, firestore, auth
 import io
 import random
-import firebase_admin
-from firebase_admin import credentials, auth, firestore
 import json
 
-# ---- 🌟 Firebase Setup ----
-if not firebase_admin._apps:
-    cred = credentials.Certificate(json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]))
-    firebase_admin.initialize_app(cred)
+# ---- 🌟 Firebase Configuration ----
+if "firebase_initialized" not in st.session_state:
+    try:
+        firebase_config = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
+        cred = credentials.Certificate(firebase_config)
+        firebase_admin.initialize_app(cred)
+        st.session_state.firebase_initialized = True
+    except KeyError:
+        st.error("❌ Firebase credentials are missing. Please add them to Streamlit secrets.")
 
 db = firestore.client()
 
-# ---- 🌟 Google Authentication ----
-st.sidebar.subheader("🔐 Login")
+# ---- 🌟 Set Hugging Face API Key ----
+HF_API_KEY = st.secrets["HF_API_KEY"]
+client = InferenceClient(api_key=HF_API_KEY)
+
+# ---- 🌟 Streamlit App Config ----
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
+
+# ---- 🌟 User Authentication ----
+st.sidebar.header("🔐 User Authentication")
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
 def login():
-    try:
-        user = auth.verify_id_token(st.session_state["firebase_id_token"])
-        st.session_state.user = user
-    except:
-        st.session_state.user = None
+    user = auth.sign_in_with_google()
+    st.session_state.user = user
+    st.success(f"✅ Logged in as {user.email}")
 
-if not st.session_state.user:
-    firebase_auth_link = st.secrets["FIREBASE_AUTH_URL"]
-    st.sidebar.markdown(f"[Login with Google]({firebase_auth_link})")
+def logout():
+    st.session_state.user = None
+    st.success("👋 Logged out successfully.")
+
+if st.session_state.user:
+    st.sidebar.write(f"👤 **Logged in as:** {st.session_state.user.email}")
+    st.sidebar.button("🚪 Logout", on_click=logout)
 else:
-    st.sidebar.success(f"Logged in as {st.session_state.user['name']}")
-    if st.sidebar.button("Logout"):
-        st.session_state.user = None
-
-# ---- 🌟 Hugging Face API Key ----
-HF_API_KEY = st.secrets["HF_API_KEY"]
-client = InferenceClient(api_key=HF_API_KEY)
-
-# ---- 🌟 UI Configuration ----
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
+    st.sidebar.button("🔑 Login with Google", on_click=login)
 
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -2207,12 +2211,10 @@ if not st.session_state.enhancement_mode:
                         st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
                         st.session_state.history.append(img_bytes)
 
-                        # Save to Firebase Firestore
-                        user_email = st.session_state.user["email"] if st.session_state.user else "guest"
-                        db.collection("generated_images").add({
-                            "user": user_email,
-                            "prompt": final_prompt,
-                            "image_data": img_bytes
+                        # Save to Firestore
+                        db.collection("users").document(st.session_state.user.email).collection("images").add({
+                            "prompt": prompt,
+                            "image": img_bytes
                         })
 
             except Exception as e:
@@ -2220,4 +2222,5 @@ if not st.session_state.enhancement_mode:
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+
 
