@@ -2049,7 +2049,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -2170,6 +2169,10 @@ if st.session_state.enhancement_mode:
         if st.button("✨ Enhance Image"):
             enhanced_image = enhance_image(image, enhance_options)
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+            img_bytes = io.BytesIO()
+            enhanced_image.save(img_bytes, format="PNG")
+            img_bytes = img_bytes.getvalue()
+            st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
 
 # ---- 🌟 Image Generation Mode ----
 if not st.session_state.enhancement_mode:
@@ -2182,38 +2185,39 @@ if not st.session_state.enhancement_mode:
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+
+                if "history" not in st.session_state:
+                    st.session_state.history = []
+
                 images = []
                 cols = st.columns(num_variations)
 
                 for i in range(num_variations):
                     seed = random.randint(1, 1000000)
-                    generated_image = client.text_to_image(final_prompt, model=model, seed=seed)
+                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
                     generated_image = generated_image.resize(resolution_map[resolution])
                     images.append(generated_image)
 
                     with cols[i]:
                         st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-
-                    # Save to Firestore
-                    if st.session_state.user:
                         img_bytes = io.BytesIO()
                         generated_image.save(img_bytes, format="PNG")
-                        img_data = img_bytes.getvalue()
-                        db.collection("users").document(st.session_state.user["uid"]).collection("images").add({
-                            "prompt": prompt,
-                            "image_data": img_data
+                        img_bytes = img_bytes.getvalue()
+                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+                        st.session_state.history.append(img_bytes)
+
+                        # Save to Firebase Firestore
+                        user_email = st.session_state.user["email"] if st.session_state.user else "guest"
+                        db.collection("generated_images").add({
+                            "user": user_email,
+                            "prompt": final_prompt,
+                            "image_data": img_bytes
                         })
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-# ---- 🌟 User Image History from Firestore ----
-if st.session_state.user:
-    st.sidebar.subheader("📜 Your Past Images")
-    images = db.collection("users").document(st.session_state.user["uid"]).collection("images").stream()
-    for img in images:
-        img_data = img.to_dict()["image_data"]
-        st.sidebar.image(Image.open(io.BytesIO(img_data)), caption="Past Image", use_container_width=True)
-
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by HARSH SINGH AND ADITYA TIWARI")
+st.markdown("---")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
 
