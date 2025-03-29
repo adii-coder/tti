@@ -2045,31 +2045,33 @@
 
 
 
-
 import streamlit as st
-from huggingface_hub import InferenceClient
-from PIL import Image, ImageEnhance, ImageOps
-import io
-import random
 import firebase_admin
-from firebase_admin import credentials, firestore, auth
+from firebase_admin import credentials, firestore
 import json
 
-# ---- 🌟 Streamlit Secrets & Firebase Setup ----
-HF_API_KEY = st.secrets["HF_API_KEY"]
-client = InferenceClient(api_key=HF_API_KEY)
-
-# ---- 🌟 Firebase Configuration ----
+# ---- ✅ Secure Firebase Initialization ----
 if "firebase_initialized" not in st.session_state:
     try:
-        firebase_config = st.secrets["FIREBASE_SERVICE_ACCOUNT"]  # FIXED: No need for json.loads
+        # 🔥 Load Firebase credentials safely
+        firebase_config = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]) \
+            if isinstance(st.secrets["FIREBASE_SERVICE_ACCOUNT"], str) \
+            else st.secrets["FIREBASE_SERVICE_ACCOUNT"]
+
         cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
         st.session_state.firebase_initialized = True
+        st.success("✅ Firebase initialized successfully!")
     except KeyError:
-        st.error("❌ Firebase credentials are missing. Please add them to Streamlit secrets.")
+        st.error("❌ Firebase credentials are missing in Streamlit secrets.")
+    except ValueError as e:
+        st.error(f"❌ Invalid Firebase credentials: {e}")
+    except Exception as e:
+        st.error(f"❌ Unexpected error: {e}")
 
+# 🔥 Initialize Firestore Database
 db = firestore.client()
+
 
 # ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
