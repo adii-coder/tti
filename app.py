@@ -2046,21 +2046,23 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
-import firebase_admin
-from firebase_admin import credentials, firestore, auth
 import io
 import random
+import firebase_admin
+from firebase_admin import credentials, firestore, auth
 import json
+
+# ---- 🌟 Streamlit Secrets & Firebase Setup ----
+HF_API_KEY = st.secrets["HF_API_KEY"]
+client = InferenceClient(api_key=HF_API_KEY)
 
 # ---- 🌟 Firebase Configuration ----
 if "firebase_initialized" not in st.session_state:
     try:
-        firebase_config = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
+        firebase_config = st.secrets["FIREBASE_SERVICE_ACCOUNT"]  # FIXED: No need for json.loads
         cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
         st.session_state.firebase_initialized = True
@@ -2069,33 +2071,8 @@ if "firebase_initialized" not in st.session_state:
 
 db = firestore.client()
 
-# ---- 🌟 Set Hugging Face API Key ----
-HF_API_KEY = st.secrets["HF_API_KEY"]
-client = InferenceClient(api_key=HF_API_KEY)
-
-# ---- 🌟 Streamlit App Config ----
+# ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
-
-# ---- 🌟 User Authentication ----
-st.sidebar.header("🔐 User Authentication")
-
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-def login():
-    user = auth.sign_in_with_google()
-    st.session_state.user = user
-    st.success(f"✅ Logged in as {user.email}")
-
-def logout():
-    st.session_state.user = None
-    st.success("👋 Logged out successfully.")
-
-if st.session_state.user:
-    st.sidebar.write(f"👤 **Logged in as:** {st.session_state.user.email}")
-    st.sidebar.button("🚪 Logout", on_click=logout)
-else:
-    st.sidebar.button("🔑 Login with Google", on_click=login)
 
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -2210,17 +2187,22 @@ if not st.session_state.enhancement_mode:
                         img_bytes = img_bytes.getvalue()
                         st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
                         st.session_state.history.append(img_bytes)
-
-                        # Save to Firestore
-                        db.collection("users").document(st.session_state.user.email).collection("images").add({
-                            "prompt": prompt,
-                            "image": img_bytes
-                        })
-
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+# ---- 🌟 Sidebar - Image History ----
+st.sidebar.subheader("📜 Image History")
+if "history" in st.session_state and st.session_state.history:
+    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+        img = Image.open(io.BytesIO(img_bytes))
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+if st.sidebar.button("🗑️ Clear History"):
+    st.session_state.history = []
+
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+
 
 
