@@ -1093,148 +1093,85 @@
 
 
 
-
-
 import json
+import firebase_admin
+from firebase_admin import credentials, firestore, auth
 import streamlit as st
-from firebase_admin import credentials, auth, firestore, initialize_app
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-from PIL import Image, ImageEnhance, ImageOps
-import io
-import random
 
-# ---- 🌟 Set Page Config ----
-st.set_page_config(page_title="Rachna AI - Image Creator", page_icon="🎨", layout="wide")
+# ✅ Load Firebase credentials from Streamlit secrets
+try:
+    firebase_json_str = st.secrets["firebase"]["json"]  # 🔥 Fetch Firebase JSON properly
+    firebase_config = json.loads(firebase_json_str)
 
-# ---- 🌟 Initialize Firebase ----
-if "firebase_initialized" not in st.session_state:
-    try:
-        firebase_json_str = st.secrets["firebase"]["json"]
-        firebase_config = json.loads(firebase_json_str)
+    # ✅ Initialize Firebase if not already initialized
+    if not firebase_admin._apps:
         cred = credentials.Certificate(firebase_config)
-        initialize_app(cred)
-        st.session_state.db = firestore.client()
-        st.session_state.firebase_initialized = True
-    except Exception as e:
-        st.error(f"🔥 Firebase Error: {e}")
-        st.session_state.firebase_initialized = False
+        firebase_admin.initialize_app(cred)
 
-# ---- 🌟 Session Management ----
+    db = firestore.client()
+    st.session_state.firebase_initialized = True
+except Exception as e:
+    st.error(f"🔥 Firebase Initialization Error: {str(e)}")
+    db = None
+
+
+# ✅ Show the main page first
 if "user" not in st.session_state:
-    st.session_state.user = None
+    st.session_state.user = None  # Store logged-in user
+
 if "show_login_popup" not in st.session_state:
-    st.session_state.show_login_popup = False
-if "enhancement_mode" not in st.session_state:
-    st.session_state.enhancement_mode = False
+    st.session_state.show_login_popup = False  # Toggle login popup
 
-# ---- 🌟 Google Login ----
-def google_login():
-    auth_url = "https://accounts.google.com/o/oauth2/auth"
-    client_id = st.secrets["google_client_id"]
-    redirect_uri = "https://YOUR_STREAMLIT_APP_URL"
-    scope = "email profile openid"
-    login_url = f"{auth_url}?client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&response_type=token"
+if "login_mode" not in st.session_state:
+    st.session_state.login_mode = "login"  # Track if login or signup
 
-    st.markdown(f'<a href="{login_url}" target="_self"><button>Login with Google</button></a>', unsafe_allow_html=True)
-
-    token = st.query_params.get("access_token")
-    if token:
-        try:
-            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
-            st.session_state.user = idinfo["email"]
-            st.experimental_rerun()
-        except ValueError:
-            st.error("❌ Authentication failed!")
-
-# ---- 🌟 Popup Login ----
+# ✅ UI: Show Login/Signup Popup Only When Needed
 def login_popup():
-    with st.modal("🔐 Login Required", key="login_modal"):
-        st.subheader("Welcome to Rachna AI!")
-        st.markdown("Please log in to use the features.")
-        google_login()
-
-# ---- 🌟 Protect Features ----
-def require_login():
-    if not st.session_state.user:
-        st.session_state.show_login_popup = True
-
-# ---- 🌟 Sidebar ----
-st.sidebar.header("⚙️ Options")
-if st.session_state.user:
-    st.sidebar.markdown(f"👤 **Logged in as:** `{st.session_state.user}`")
-    if st.sidebar.button("🚪 Logout"):
-        st.session_state.user = None
-        st.experimental_rerun()
-else:
-    if st.sidebar.button("🔑 Login with Google"):
-        require_login()
-
-# ---- 🌟 Toggle Mode ----
-def toggle_mode():
-    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
-
-toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
-st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
-
-# ---- 🌟 Main UI ----
-st.title("🎨 Rachna AI - Image Creator")
-st.markdown("**Create and enhance AI-generated images effortlessly!**")
-
-# ---- 🌟 Image Enhancement Mode ----
-if st.session_state.enhancement_mode:
-    st.title("✨ Image Enhancement Tool")
-    st.markdown("Enhance your images with AI-powered filters! 🎨")
-
-    uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
-
-    if uploaded_file:
-        require_login()
-        if st.session_state.user:
-            image = Image.open(uploaded_file)
-            st.image(image, caption="📸 Original Image", use_container_width=True)
-
-            enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
-
-            def enhance_image(image, options):
-                if "Sharpen" in options:
-                    image = ImageEnhance.Sharpness(image).enhance(4.0)
-                if "Contrast" in options:
-                    image = ImageEnhance.Contrast(image).enhance(2.5)
-                if "Brightness" in options:
-                    image = ImageEnhance.Brightness(image).enhance(1.8)
-                if "Saturation" in options:
-                    image = ImageEnhance.Color(image).enhance(2.5)
-                if "Grayscale" in options:
-                    image = ImageOps.grayscale(image)
-                if "HDR Effect" in options:
-                    image = ImageEnhance.Contrast(image).enhance(3.0)
-                    image = ImageEnhance.Sharpness(image).enhance(4.0)
-                return image
-
-            if st.button("✨ Enhance Image"):
-                enhanced_image = enhance_image(image, enhance_options)
-                st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
-                img_bytes = io.BytesIO()
-                enhanced_image.save(img_bytes, format="PNG")
-                img_bytes = img_bytes.getvalue()
-                st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
-
-# ---- 🌟 Image Generation Mode ----
-if not st.session_state.enhancement_mode:
-    st.title("🌟 Rachna - AI Image Creator 🌟")
-    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
-
-    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
-
-    if st.button("🚀 Generate Image"):
-        require_login()
-        if st.session_state.user:
-            st.success("✅ Generating Image... (AI Processing)")
-            # 🔹 ADD YOUR IMAGE GENERATION LOGIC HERE 🔹
+    """Function to show login/signup popup when user tries to use a feature"""
+    with st.sidebar:
+        st.subheader("🔐 Login / Signup")
+        
+        if st.session_state.login_mode == "login":
+            st.write("👉 **Login to Continue**")
         else:
-            login_popup()
+            st.write("👉 **Create a New Account**")
 
-# ---- 🌟 Handle Login Popup ----
+        email = st.text_input("📧 Email")
+        password = st.text_input("🔑 Password", type="password")
+        
+        if st.session_state.login_mode == "login":
+            if st.button("✅ Login"):
+                try:
+                    user = auth.get_user_by_email(email)  # ✅ Validate user in Firebase Auth
+                    st.session_state.user = email  # Store logged-in user
+                    st.session_state.show_login_popup = False  # Hide popup
+                    st.success(f"✅ Logged in as {email}")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"❌ Login Failed: {e}")
+            
+            st.write("Don't have an account? [Sign Up](#)", on_click=lambda: st.session_state.update({"login_mode": "signup"}))
+
+        else:  # Signup Mode
+            if st.button("📌 Sign Up"):
+                try:
+                    user = auth.create_user(email=email, password=password)
+                    st.success(f"✅ Account Created: {email}")
+                    st.session_state.login_mode = "login"  # Switch to login
+                except Exception as e:
+                    st.error(f"❌ Signup Failed: {e}")
+
+            st.write("Already have an account? [Login](#)", on_click=lambda: st.session_state.update({"login_mode": "login"}))
+
 if st.session_state.show_login_popup:
-    login_popup()
+    login_popup()  # Show login popup only when required
+
+
+# ✅ Example: Protect "Generate Image" button
+if st.button("🚀 Generate Image"):
+    if st.session_state.user is None:
+        st.session_state.show_login_popup = True  # Show login popup
+        st.experimental_rerun()
+    else:
+        st.success("✅ Generating Image...")  # Proceed with feature
+
