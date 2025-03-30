@@ -1114,11 +1114,11 @@ try:
         FIREBASE_CONFIG = json.loads(firebase_config_str)
     else:
         FIREBASE_CONFIG = firebase_config_str
-    
+
     if not firebase_admin._apps:
         cred = credentials.Certificate(FIREBASE_CONFIG)
         firebase_admin.initialize_app(cred)
-    
+
     db = firestore.client()
 except Exception as e:
     st.error(f"🔥 Firebase Initialization Error: {str(e)}")
@@ -1133,6 +1133,7 @@ def login(email, password):
         user = auth.get_user_by_email(email)
         st.session_state.user = {"uid": user.uid, "email": email}
         st.success(f"✅ Logged in as {email}")
+        st.experimental_rerun()  # Reload the app after login
     except Exception as e:
         st.error(f"❌ Login Failed: {e}")
 
@@ -1141,9 +1142,11 @@ def signup(email, password):
         user = auth.create_user(email=email, password=password)
         st.session_state.user = {"uid": user.uid, "email": email}
         st.success(f"✅ Account Created: {email}")
+        st.experimental_rerun()  # Reload the app after signup
     except Exception as e:
         st.error(f"❌ Signup Failed: {e}")
 
+# ---- 🔐 Show Login Page First ----
 if not st.session_state.user:
     st.title("🔐 Welcome to Rachna AI!")
     option = st.radio("Select an option", ["Login", "Signup"])
@@ -1160,7 +1163,7 @@ if not st.session_state.user:
         else:
             st.warning("⚠️ Please enter email and password.")
 
-    st.stop()  # Prevents the main app from loading before login/signup
+    st.stop()  # Stops the main app from running before login
 
 # ---- 🎨 AI Image Generation App Starts Here ----
 HF_API_KEY = st.secrets["HF_API_KEY"]
