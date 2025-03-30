@@ -1090,12 +1090,12 @@
 
 
 
-import streamlit as st
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
-from google.oauth2 import id_token
-from google.auth.transport import requests
+import streamlit as st
+from streamlit_oauth import OAuth2Component
+import requests
 
 # ✅ Load Firebase credentials from Streamlit secrets
 try:
@@ -1107,83 +1107,60 @@ try:
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
+    st.session_state.firebase_initialized = True
 except Exception as e:
     st.error(f"🔥 Firebase Initialization Error: {str(e)}")
     db = None
 
-
 # ✅ Load Google OAuth Credentials
 GOOGLE_CLIENT_ID = st.secrets["google_client_id"]
 GOOGLE_CLIENT_SECRET = st.secrets["google_client_secret"]
+REDIRECT_URI = "https://your-app-name.streamlit.app"  # Update this with your actual Streamlit app URL
 
+oauth2 = OAuth2Component(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI)
 
-# ✅ Store authentication state
+# ✅ Store login session
 if "user" not in st.session_state:
-    st.session_state.user = None
+    st.session_state.user = None  # Store logged-in user
 
 if "show_login_popup" not in st.session_state:
-    st.session_state.show_login_popup = False
+    st.session_state.show_login_popup = False  # Toggle login popup
 
+# 🔹 Function to handle Google Login
+def google_login():
+    auth_url, _ = oauth2.get_login_url(provider="google")
+    st.markdown(f"[Login with Google]({auth_url})")
 
-# ✅ Login Popup Function
+# 🔹 Function to handle email/password login
+def email_login():
+    st.subheader("🔐 Login with Email")
+    email = st.text_input("📧 Email")
+    password = st.text_input("🔑 Password", type="password")
+
+    if st.button("✅ Login"):
+        try:
+            user = auth.get_user_by_email(email)
+            st.session_state.user = email  # Store logged-in user
+            st.session_state.show_login_popup = False  # Hide popup
+            st.success(f"✅ Logged in as {email}")
+            st.experimental_rerun()
+        except Exception as e:
+            st.error(f"❌ Login Failed: {e}")
+
+# 🔹 Function to show login popup when user tries to access features
 def login_popup():
-    """Shows a popup when the user tries to access a feature without logging in."""
-    with st.modal("🔐 Login Required", key="login_modal"):
-        st.subheader("Sign in to continue")
+    with st.sidebar:
+        st.subheader("🔑 Login Required")
+        google_login()
+        email_login()
 
-        # Traditional Email Login
-        email = st.text_input("📧 Email")
-        password = st.text_input("🔑 Password", type="password")
-
-        if st.button("✅ Login"):
-            try:
-                user = auth.get_user_by_email(email)  # ✅ Validate user
-                st.session_state.user = email
-                st.session_state.show_login_popup = False
-                st.success(f"✅ Logged in as {email}")
-                st.experimental_rerun()
-            except Exception as e:
-                st.error(f"❌ Login Failed: {e}")
-
-        st.markdown("---")
-
-        # Google Sign-In
-        st.subheader("Or sign in with Google")
-        google_auth_url = (
-            f"https://accounts.google.com/o/oauth2/auth?"
-            f"client_id={GOOGLE_CLIENT_ID}"
-            f"&response_type=token"
-            f"&redirect_uri=https://your-app-name.streamlit.app"
-            f"&scope=email profile"
-        )
-        st.markdown(f"[![Sign in with Google](https://developers.google.com/identity/images/btn_google_signin_dark_normal_web.png)]({google_auth_url})")
-
-        # Simulate Google Sign-In Handling (You need to handle the OAuth response)
-        google_token = st.text_input("Paste Google ID Token here (for demo)", type="password")
-        if google_token:
-            try:
-                id_info = id_token.verify_oauth2_token(google_token, requests.Request(), GOOGLE_CLIENT_ID)
-                st.session_state.user = id_info["email"]
-                st.session_state.show_login_popup = False
-                st.success(f"✅ Logged in as {id_info['email']}")
-                st.experimental_rerun()
-            except Exception as e:
-                st.error(f"❌ Google Login Failed: {e}")
-
-
-# ✅ Show Login Popup if Not Logged In
 if st.session_state.show_login_popup:
     login_popup()
 
-
 # ✅ Example: Protect "Generate Image" button
-st.title("🎨 Rachna AI - Image Generator")
-
 if st.button("🚀 Generate Image"):
     if st.session_state.user is None:
         st.session_state.show_login_popup = True  # Show login popup
         st.experimental_rerun()
     else:
         st.success("✅ Generating Image...")  # Proceed with feature
-
-
