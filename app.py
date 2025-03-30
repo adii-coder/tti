@@ -1092,82 +1092,91 @@
 
 
 
-
+import streamlit as st
 import json
 import firebase_admin
-from firebase_admin import credentials, firestore, auth
-import streamlit as st
+from firebase_admin import credentials, auth, firestore
+import requests
+from urllib.parse import urlencode
 
-# ✅ Load Firebase credentials from Streamlit secrets
+# ✅ Firebase Initialization
 try:
-    firebase_json_str = st.secrets["firebase"]["json"]  # 🔥 Fetch Firebase JSON properly
+    firebase_json_str = st.secrets["firebase"]["json"]
     firebase_config = json.loads(firebase_json_str)
 
-    # ✅ Initialize Firebase if not already initialized
     if not firebase_admin._apps:
         cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
-    st.session_state.firebase_initialized = True
 except Exception as e:
     st.error(f"🔥 Firebase Initialization Error: {str(e)}")
     db = None
 
+# ✅ Google Sign-In Setup
+GOOGLE_CLIENT_ID = st.secrets["google_client_id"]
+REDIRECT_URI = st.secrets["redirect_uri"]
 
-# ✅ Show the main page first
+# ✅ User Session State
 if "user" not in st.session_state:
-    st.session_state.user = None  # Store logged-in user
-
+    st.session_state.user = None
 if "show_login_popup" not in st.session_state:
-    st.session_state.show_login_popup = False  # Toggle login popup
+    st.session_state.show_login_popup = False
 
-if "login_mode" not in st.session_state:
-    st.session_state.login_mode = "login"  # Track if login or signup
 
-# ✅ UI: Show Login/Signup Popup Only When Needed
+# 🎨 UI - Main Page
+st.set_page_config(page_title="Rachna AI - Image Creator", page_icon="🎨", layout="wide")
+st.title("🎨 Welcome to Rachna AI")
+
+st.write("An AI-powered image generation platform. Please sign in to start using.")
+
+# 🔐 Login Popup Function
 def login_popup():
-    """Function to show login/signup popup when user tries to use a feature"""
+    """Shows login/signup popup when user tries to use a feature."""
     with st.sidebar:
-        st.subheader("🔐 Login / Signup")
-        
-        if st.session_state.login_mode == "login":
-            st.write("👉 **Login to Continue**")
-        else:
-            st.write("👉 **Create a New Account**")
+        st.subheader("🔐 Login to Continue")
 
-        email = st.text_input("📧 Email")
-        password = st.text_input("🔑 Password", type="password")
-        
-        if st.session_state.login_mode == "login":
+        login_tab, signup_tab = st.tabs(["Login", "Signup"])
+
+        with login_tab:
+            email = st.text_input("📧 Email", key="login_email")
+            password = st.text_input("🔑 Password", type="password", key="login_password")
             if st.button("✅ Login"):
                 try:
-                    user = auth.get_user_by_email(email)  # ✅ Validate user in Firebase Auth
-                    st.session_state.user = email  # Store logged-in user
-                    st.session_state.show_login_popup = False  # Hide popup
+                    user = auth.get_user_by_email(email)
+                    st.session_state.user = email
+                    st.session_state.show_login_popup = False
                     st.success(f"✅ Logged in as {email}")
                     st.experimental_rerun()
                 except Exception as e:
                     st.error(f"❌ Login Failed: {e}")
-            
-            st.write("Don't have an account? [Sign Up](#)", on_click=lambda: st.session_state.update({"login_mode": "signup"}))
 
-        else:  # Signup Mode
-            if st.button("📌 Sign Up"):
+        with signup_tab:
+            email = st.text_input("📧 Email", key="signup_email")
+            password = st.text_input("🔑 Password", type="password", key="signup_password")
+            if st.button("🚀 Signup"):
                 try:
-                    user = auth.create_user(email=email, password=password)
-                    st.success(f"✅ Account Created: {email}")
-                    st.session_state.login_mode = "login"  # Switch to login
+                    auth.create_user(email=email, password=password)
+                    st.success("✅ Account Created! Please log in.")
                 except Exception as e:
                     st.error(f"❌ Signup Failed: {e}")
 
-            st.write("Already have an account? [Login](#)", on_click=lambda: st.session_state.update({"login_mode": "login"}))
+        st.write("---")
+        st.write("Or Sign in with Google:")
+        google_signin_url = f"https://accounts.google.com/o/oauth2/auth?{urlencode({
+            'client_id': GOOGLE_CLIENT_ID,
+            'redirect_uri': REDIRECT_URI,
+            'response_type': 'code',
+            'scope': 'openid email profile'
+        })}"
+        st.markdown(f"[![Sign in with Google](https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png)]({google_signin_url})")
 
+
+# ✅ Show Login Popup if Required
 if st.session_state.show_login_popup:
-    login_popup()  # Show login popup only when required
+    login_popup()
 
-
-# ✅ Example: Protect "Generate Image" button
+# 🎨 Example Feature: Image Generation Button
 if st.button("🚀 Generate Image"):
     if st.session_state.user is None:
         st.session_state.show_login_popup = True  # Show login popup
