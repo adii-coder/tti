@@ -2046,32 +2046,37 @@
 
 
 import streamlit as st
+from huggingface_hub import InferenceClient
+from PIL import Image, ImageEnhance, ImageOps
+import io
+import random
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, auth, firestore
 import json
 
-# ---- ✅ Secure Firebase Initialization ----
-if "firebase_initialized" not in st.session_state:
-    try:
-        # 🔥 Load Firebase credentials safely
-        firebase_config = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]) \
-            if isinstance(st.secrets["FIREBASE_SERVICE_ACCOUNT"], str) \
-            else st.secrets["FIREBASE_SERVICE_ACCOUNT"]
+# Set Hugging Face API Key from Streamlit Secrets
+HF_API_KEY = st.secrets["HF_API_KEY"]
+client = InferenceClient(api_key=HF_API_KEY)
 
-        cred = credentials.Certificate(firebase_config)
-        firebase_admin.initialize_app(cred)
-        st.session_state.firebase_initialized = True
-        st.success("✅ Firebase initialized successfully!")
-    except KeyError:
-        st.error("❌ Firebase credentials are missing in Streamlit secrets.")
-    except ValueError as e:
-        st.error(f"❌ Invalid Firebase credentials: {e}")
-    except Exception as e:
-        st.error(f"❌ Unexpected error: {e}")
-
-# 🔥 Initialize Firestore Database
+# Firebase Setup
+FIREBASE_CONFIG = json.loads(st.secrets["firebase_config"])
+if not firebase_admin._apps:
+    cred = credentials.Certificate(FIREBASE_CONFIG)
+    firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+def save_chat(user_id, prompt, generated_image_url):
+    chat_ref = db.collection("users").document(user_id).collection("sessions").document()
+    chat_ref.set({
+        "prompt": prompt,
+        "image_url": generated_image_url,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+
+def fetch_previous_sessions(user_id):
+    chats_ref = db.collection("users").document(user_id).collection("sessions").order_by("timestamp", direction=firestore.Query.DESCENDING)
+    chats = chats_ref.stream()
+    return [{"prompt": chat.to_dict()["prompt"], "image_url": chat.to_dict()["image_url"]} for chat in chats]
 
 # ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
@@ -2168,43 +2173,11 @@ if not st.session_state.enhancement_mode:
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-
-                if "history" not in st.session_state:
-                    st.session_state.history = []
-
-                images = []
-                cols = st.columns(num_variations)
-
-                for i in range(num_variations):
-                    seed = random.randint(1, 1000000)
-                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
-                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
-                    generated_image = generated_image.resize(resolution_map[resolution])
-                    images.append(generated_image)
-
-                    with cols[i]:
-                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
-                        img_bytes = io.BytesIO()
-                        generated_image.save(img_bytes, format="PNG")
-                        img_bytes = img_bytes.getvalue()
-                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
-                        st.session_state.history.append(img_bytes)
+                generated_image_url = "https://example.com/generated_image.jpg"  # Placeholder
+                save_chat("user@example.com", final_prompt, generated_image_url)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-# ---- 🌟 Sidebar - Image History ----
-st.sidebar.subheader("📜 Image History")
-if "history" in st.session_state and st.session_state.history:
-    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
-        img = Image.open(io.BytesIO(img_bytes))
-        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
-        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
-
-if st.sidebar.button("🗑️ Clear History"):
-    st.session_state.history = []
-
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
-
-
 
