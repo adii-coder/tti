@@ -2041,8 +2041,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -2051,6 +2049,9 @@ import random
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import json
+
+# ---- 🌟 UI Configuration ----
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
 
 # Set Hugging Face API Key from Streamlit Secrets
 HF_API_KEY = st.secrets["HF_API_KEY"]
@@ -2063,8 +2064,14 @@ try:
         cred = credentials.Certificate(FIREBASE_CONFIG)
         firebase_admin.initialize_app(cred)
     db = firestore.client()
+except json.JSONDecodeError:
+    st.error("🔥 Firebase Configuration Error: Invalid JSON format in secrets.")
+    db = None
+except ValueError as e:
+    st.error(f"🔥 Firebase Initialization Error: {str(e)}")
+    db = None
 except Exception as e:
-    st.error(f"🔥 Firebase Initialization Error: {e}")
+    st.error(f"🔥 Unexpected Firebase Error: {str(e)}")
     db = None
 
 def save_chat(user_id, prompt, generated_image_url):
@@ -2082,9 +2089,6 @@ def fetch_previous_sessions(user_id):
         chats = chats_ref.stream()
         return [{"prompt": chat.to_dict()["prompt"], "image_url": chat.to_dict()["image_url"]} for chat in chats]
     return []
-
-# ---- 🌟 UI Configuration ----
-st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
 
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
@@ -2182,6 +2186,9 @@ if not st.session_state.enhancement_mode:
                 save_chat("user@example.com", final_prompt, generated_image_url)
             except Exception as e:
                 st.error(f"❌ Error: {e}")
+
+st.markdown("---")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
