@@ -1097,11 +1097,12 @@
 
 import json
 import streamlit as st
-from streamlit.components.v1 import html
 from firebase_admin import credentials, auth, firestore, initialize_app
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-import requests
+from PIL import Image, ImageEnhance, ImageOps
+import io
+import random
 
 # ---- 🌟 Set Page Config ----
 st.set_page_config(page_title="Rachna AI - Image Creator", page_icon="🎨", layout="wide")
@@ -1124,6 +1125,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "show_login_popup" not in st.session_state:
     st.session_state.show_login_popup = False
+if "enhancement_mode" not in st.session_state:
+    st.session_state.enhancement_mode = False
 
 # ---- 🌟 Google Login ----
 def google_login():
@@ -1167,50 +1170,71 @@ else:
     if st.sidebar.button("🔑 Login with Google"):
         require_login()
 
+# ---- 🌟 Toggle Mode ----
+def toggle_mode():
+    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
+
+toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
+st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
+
 # ---- 🌟 Main UI ----
 st.title("🎨 Rachna AI - Image Creator")
 st.markdown("**Create and enhance AI-generated images effortlessly!**")
 
-# ---- 🌟 Image Generation ----
-if st.button("🚀 Generate AI Image"):
-    require_login()
-    if st.session_state.user:
-        st.success("✅ Image Generation Started!")
-    else:
-        login_popup()
+# ---- 🌟 Image Enhancement Mode ----
+if st.session_state.enhancement_mode:
+    st.title("✨ Image Enhancement Tool")
+    st.markdown("Enhance your images with AI-powered filters! 🎨")
 
-# ---- 🌟 Image Enhancement ----
-if st.button("✨ Enhance Image"):
-    require_login()
-    if st.session_state.user:
-        st.success("✅ Image Enhancement Ready!")
-    else:
-        login_popup()
+    uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
+
+    if uploaded_file:
+        require_login()
+        if st.session_state.user:
+            image = Image.open(uploaded_file)
+            st.image(image, caption="📸 Original Image", use_container_width=True)
+
+            enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+
+            def enhance_image(image, options):
+                if "Sharpen" in options:
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                if "Contrast" in options:
+                    image = ImageEnhance.Contrast(image).enhance(2.5)
+                if "Brightness" in options:
+                    image = ImageEnhance.Brightness(image).enhance(1.8)
+                if "Saturation" in options:
+                    image = ImageEnhance.Color(image).enhance(2.5)
+                if "Grayscale" in options:
+                    image = ImageOps.grayscale(image)
+                if "HDR Effect" in options:
+                    image = ImageEnhance.Contrast(image).enhance(3.0)
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                return image
+
+            if st.button("✨ Enhance Image"):
+                enhanced_image = enhance_image(image, enhance_options)
+                st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+                img_bytes = io.BytesIO()
+                enhanced_image.save(img_bytes, format="PNG")
+                img_bytes = img_bytes.getvalue()
+                st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+
+# ---- 🌟 Image Generation Mode ----
+if not st.session_state.enhancement_mode:
+    st.title("🌟 Rachna - AI Image Creator 🌟")
+    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+
+    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+
+    if st.button("🚀 Generate Image"):
+        require_login()
+        if st.session_state.user:
+            st.success("✅ Generating Image... (AI Processing)")
+            # 🔹 ADD YOUR IMAGE GENERATION LOGIC HERE 🔹
+        else:
+            login_popup()
 
 # ---- 🌟 Handle Login Popup ----
 if st.session_state.show_login_popup:
     login_popup()
-
-    enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation"], default=[])
-
-    def enhance_image(image, options):
-        if "Sharpen" in options:
-            image = ImageEnhance.Sharpness(image).enhance(4.0)
-        if "Contrast" in options:
-            image = ImageEnhance.Contrast(image).enhance(2.5)
-        if "Brightness" in options:
-            image = ImageEnhance.Brightness(image).enhance(1.8)
-        if "Saturation" in options:
-            image = ImageEnhance.Color(image).enhance(2.5)
-        if "Grayscale" in options:
-            image = ImageOps.grayscale(image)
-        return image
-
-    if st.button("✨ Enhance Image"):
-        enhanced_image = enhance_image(image, enhance_options)
-        st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
-
-st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created by HARSH SINGH & ADITYA TIWARI")
-
-
