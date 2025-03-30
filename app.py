@@ -1079,7 +1079,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -1120,7 +1119,7 @@ with login_expander:
         google_auth_button = st.button("Sign in with Google")
         if google_auth_button:
             try:
-                user = auth.get_user_by_email("user@example.com")  # Replace with proper Google Sign-In handling
+                user = auth.get_user("user_id_placeholder")  # Replace with proper user ID fetching logic
                 st.success(f"✅ Logged in as {user.email}")
             except Exception as e:
                 st.error(f"❌ Authentication Error: {e}")
@@ -1227,3 +1226,4 @@ if st.session_state.enhancement_mode:
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+
