@@ -5,3 +5,4 @@ deep-translator
 google-api-python-client
 firebase-admin
 streamlit-authenticator
+streamlit-extras
