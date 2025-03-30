@@ -1090,16 +1090,14 @@
 
 
 
-
-
 import streamlit as st
 import json
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
-import requests
-from urllib.parse import urlencode
+from firebase_admin import credentials, firestore, auth
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
-# ✅ Firebase Initialization
+# ✅ Load Firebase credentials from Streamlit secrets
 try:
     firebase_json_str = st.secrets["firebase"]["json"]
     firebase_config = json.loads(firebase_json_str)
@@ -1113,74 +1111,79 @@ except Exception as e:
     st.error(f"🔥 Firebase Initialization Error: {str(e)}")
     db = None
 
-# ✅ Google Sign-In Setup
-GOOGLE_CLIENT_ID = st.secrets["google_client_id"]
-REDIRECT_URI = st.secrets["redirect_uri"]
 
-# ✅ User Session State
+# ✅ Load Google OAuth Credentials
+GOOGLE_CLIENT_ID = st.secrets["google_client_id"]
+GOOGLE_CLIENT_SECRET = st.secrets["google_client_secret"]
+
+
+# ✅ Store authentication state
 if "user" not in st.session_state:
     st.session_state.user = None
+
 if "show_login_popup" not in st.session_state:
     st.session_state.show_login_popup = False
 
 
-# 🎨 UI - Main Page
-st.set_page_config(page_title="Rachna AI - Image Creator", page_icon="🎨", layout="wide")
-st.title("🎨 Welcome to Rachna AI")
-
-st.write("An AI-powered image generation platform. Please sign in to start using.")
-
-# 🔐 Login Popup Function
+# ✅ Login Popup Function
 def login_popup():
-    """Shows login/signup popup when user tries to use a feature."""
-    with st.sidebar:
-        st.subheader("🔐 Login to Continue")
+    """Shows a popup when the user tries to access a feature without logging in."""
+    with st.modal("🔐 Login Required", key="login_modal"):
+        st.subheader("Sign in to continue")
 
-        login_tab, signup_tab = st.tabs(["Login", "Signup"])
+        # Traditional Email Login
+        email = st.text_input("📧 Email")
+        password = st.text_input("🔑 Password", type="password")
 
-        with login_tab:
-            email = st.text_input("📧 Email", key="login_email")
-            password = st.text_input("🔑 Password", type="password", key="login_password")
-            if st.button("✅ Login"):
-                try:
-                    user = auth.get_user_by_email(email)
-                    st.session_state.user = email
-                    st.session_state.show_login_popup = False
-                    st.success(f"✅ Logged in as {email}")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"❌ Login Failed: {e}")
+        if st.button("✅ Login"):
+            try:
+                user = auth.get_user_by_email(email)  # ✅ Validate user
+                st.session_state.user = email
+                st.session_state.show_login_popup = False
+                st.success(f"✅ Logged in as {email}")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ Login Failed: {e}")
 
-        with signup_tab:
-            email = st.text_input("📧 Email", key="signup_email")
-            password = st.text_input("🔑 Password", type="password", key="signup_password")
-            if st.button("🚀 Signup"):
-                try:
-                    auth.create_user(email=email, password=password)
-                    st.success("✅ Account Created! Please log in.")
-                except Exception as e:
-                    st.error(f"❌ Signup Failed: {e}")
+        st.markdown("---")
 
-        st.write("---")
-        st.write("Or Sign in with Google:")
-        google_signin_url = f"https://accounts.google.com/o/oauth2/auth?{urlencode({
-            'client_id': GOOGLE_CLIENT_ID,
-            'redirect_uri': REDIRECT_URI,
-            'response_type': 'code',
-            'scope': 'openid email profile'
-        })}"
-        st.markdown(f"[![Sign in with Google](https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png)]({google_signin_url})")
+        # Google Sign-In
+        st.subheader("Or sign in with Google")
+        google_auth_url = (
+            f"https://accounts.google.com/o/oauth2/auth?"
+            f"client_id={GOOGLE_CLIENT_ID}"
+            f"&response_type=token"
+            f"&redirect_uri=https://your-app-name.streamlit.app"
+            f"&scope=email profile"
+        )
+        st.markdown(f"[![Sign in with Google](https://developers.google.com/identity/images/btn_google_signin_dark_normal_web.png)]({google_auth_url})")
+
+        # Simulate Google Sign-In Handling (You need to handle the OAuth response)
+        google_token = st.text_input("Paste Google ID Token here (for demo)", type="password")
+        if google_token:
+            try:
+                id_info = id_token.verify_oauth2_token(google_token, requests.Request(), GOOGLE_CLIENT_ID)
+                st.session_state.user = id_info["email"]
+                st.session_state.show_login_popup = False
+                st.success(f"✅ Logged in as {id_info['email']}")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ Google Login Failed: {e}")
 
 
-# ✅ Show Login Popup if Required
+# ✅ Show Login Popup if Not Logged In
 if st.session_state.show_login_popup:
     login_popup()
 
-# 🎨 Example Feature: Image Generation Button
+
+# ✅ Example: Protect "Generate Image" button
+st.title("🎨 Rachna AI - Image Generator")
+
 if st.button("🚀 Generate Image"):
     if st.session_state.user is None:
         st.session_state.show_login_popup = True  # Show login popup
         st.experimental_rerun()
     else:
         st.success("✅ Generating Image...")  # Proceed with feature
+
 
