@@ -2035,12 +2035,6 @@
 
 
 
-
-
-
-
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -2059,7 +2053,12 @@ client = InferenceClient(api_key=HF_API_KEY)
 
 # Firebase Setup
 try:
-    FIREBASE_CONFIG = json.loads(st.secrets["firebase_config"])
+    firebase_config_str = st.secrets["firebase_config"]
+    if isinstance(firebase_config_str, str):
+        FIREBASE_CONFIG = json.loads(firebase_config_str)
+    else:
+        FIREBASE_CONFIG = firebase_config_str
+    
     if not firebase_admin._apps:
         cred = credentials.Certificate(FIREBASE_CONFIG)
         firebase_admin.initialize_app(cred)
