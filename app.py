@@ -1089,7 +1089,6 @@
 
 
 
-
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
@@ -1097,7 +1096,7 @@ import streamlit as st
 from streamlit_oauth import OAuth2Component
 import requests
 
-# ✅ Load Firebase credentials from Streamlit secrets
+# ✅ Load Firebase Credentials from Streamlit Secrets
 try:
     firebase_json_str = st.secrets["firebase"]["json"]
     firebase_config = json.loads(firebase_json_str)
@@ -1115,23 +1114,23 @@ except Exception as e:
 # ✅ Load Google OAuth Credentials
 GOOGLE_CLIENT_ID = st.secrets["google_client_id"]
 GOOGLE_CLIENT_SECRET = st.secrets["google_client_secret"]
-REDIRECT_URI = "https://your-app-name.streamlit.app"  # Update this with your actual Streamlit app URL
+REDIRECT_URI = st.secrets["redirect_uri"]
 
 oauth2 = OAuth2Component(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI)
 
-# ✅ Store login session
+# ✅ Manage User Login Session
 if "user" not in st.session_state:
-    st.session_state.user = None  # Store logged-in user
+    st.session_state.user = None
 
 if "show_login_popup" not in st.session_state:
-    st.session_state.show_login_popup = False  # Toggle login popup
+    st.session_state.show_login_popup = False
 
-# 🔹 Function to handle Google Login
+# 🔹 Function to Handle Google Login
 def google_login():
     auth_url, _ = oauth2.get_login_url(provider="google")
-    st.markdown(f"[Login with Google]({auth_url})")
+    st.markdown(f"[🔵 Login with Google]({auth_url})")
 
-# 🔹 Function to handle email/password login
+# 🔹 Function to Handle Email/Password Login
 def email_login():
     st.subheader("🔐 Login with Email")
     email = st.text_input("📧 Email")
@@ -1140,14 +1139,14 @@ def email_login():
     if st.button("✅ Login"):
         try:
             user = auth.get_user_by_email(email)
-            st.session_state.user = email  # Store logged-in user
-            st.session_state.show_login_popup = False  # Hide popup
+            st.session_state.user = email
+            st.session_state.show_login_popup = False
             st.success(f"✅ Logged in as {email}")
             st.experimental_rerun()
         except Exception as e:
             st.error(f"❌ Login Failed: {e}")
 
-# 🔹 Function to show login popup when user tries to access features
+# 🔹 Function to Show Login Popup When Accessing Features
 def login_popup():
     with st.sidebar:
         st.subheader("🔑 Login Required")
@@ -1157,10 +1156,19 @@ def login_popup():
 if st.session_state.show_login_popup:
     login_popup()
 
-# ✅ Example: Protect "Generate Image" button
+# ✅ Protect "Generate Image" Feature
+st.title("🎨 Rachna AI - Image Generator")
+
 if st.button("🚀 Generate Image"):
     if st.session_state.user is None:
-        st.session_state.show_login_popup = True  # Show login popup
+        st.session_state.show_login_popup = True
         st.experimental_rerun()
     else:
-        st.success("✅ Generating Image...")  # Proceed with feature
+        st.success("✅ Generating Image...")
+
+# ✅ Logout Option
+if st.session_state.user:
+    if st.button("🔴 Logout"):
+        st.session_state.user = None
+        st.success("✅ Logged out successfully")
+        st.experimental_rerun()
