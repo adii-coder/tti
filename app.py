@@ -2043,8 +2043,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps
@@ -2059,24 +2057,31 @@ HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
 # Firebase Setup
-FIREBASE_CONFIG = json.loads(st.secrets["firebase_config"])
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CONFIG)
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
+try:
+    FIREBASE_CONFIG = json.loads(st.secrets["firebase_config"])
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(FIREBASE_CONFIG)
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+except Exception as e:
+    st.error(f"🔥 Firebase Initialization Error: {e}")
+    db = None
 
 def save_chat(user_id, prompt, generated_image_url):
-    chat_ref = db.collection("users").document(user_id).collection("sessions").document()
-    chat_ref.set({
-        "prompt": prompt,
-        "image_url": generated_image_url,
-        "timestamp": firestore.SERVER_TIMESTAMP
-    })
+    if db:
+        chat_ref = db.collection("users").document(user_id).collection("sessions").document()
+        chat_ref.set({
+            "prompt": prompt,
+            "image_url": generated_image_url,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
 
 def fetch_previous_sessions(user_id):
-    chats_ref = db.collection("users").document(user_id).collection("sessions").order_by("timestamp", direction=firestore.Query.DESCENDING)
-    chats = chats_ref.stream()
-    return [{"prompt": chat.to_dict()["prompt"], "image_url": chat.to_dict()["image_url"]} for chat in chats]
+    if db:
+        chats_ref = db.collection("users").document(user_id).collection("sessions").order_by("timestamp", direction=firestore.Query.DESCENDING)
+        chats = chats_ref.stream()
+        return [{"prompt": chat.to_dict()["prompt"], "image_url": chat.to_dict()["image_url"]} for chat in chats]
+    return []
 
 # ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
@@ -2180,4 +2185,5 @@ if not st.session_state.enhancement_mode:
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+
 
