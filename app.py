@@ -1099,150 +1099,179 @@
 
 
 import streamlit as st
-from huggingface_hub import InferenceClient
-from PIL import Image, ImageEnhance, ImageOps
+import json
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
-import json
+from streamlit_extras.switch_page_button import switch_page
+from huggingface_hub import InferenceClient
+from PIL import Image, ImageEnhance, ImageOps
 import io
 import random
 
-# ---- 🔥 Initialize Firebase ----
+# ---- 🌟 Firebase Initialization ----
 try:
-    firebase_config_str = st.secrets["firebase_config"]
-    if isinstance(firebase_config_str, str):
-        FIREBASE_CONFIG = json.loads(firebase_config_str)
-    else:
-        FIREBASE_CONFIG = firebase_config_str
+    firebase_json_str = st.secrets["firebase_json"]
+    firebase_config = json.loads(firebase_json_str)
 
     if not firebase_admin._apps:
-        cred = credentials.Certificate(FIREBASE_CONFIG)
+        cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
 except Exception as e:
     st.error(f"🔥 Firebase Initialization Error: {str(e)}")
-    db = None
+    db = None  
 
-# ---- 🌟 User Authentication ----
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-def login(email, password):
-    try:
-        user = auth.get_user_by_email(email)
-        st.session_state.user = {"uid": user.uid, "email": email}
-        st.success(f"✅ Logged in as {email}")
-        st.experimental_rerun()  # Reload the app after login
-    except Exception as e:
-        st.error(f"❌ Login Failed: {e}")
-
-def signup(email, password):
-    try:
-        user = auth.create_user(email=email, password=password)
-        st.session_state.user = {"uid": user.uid, "email": email}
-        st.success(f"✅ Account Created: {email}")
-        st.experimental_rerun()  # Reload the app after signup
-    except Exception as e:
-        st.error(f"❌ Signup Failed: {e}")
-
-# ---- 🔐 Show Login Page First ----
-if not st.session_state.user:
-    st.title("🔐 Welcome to Rachna AI!")
-    option = st.radio("Select an option", ["Login", "Signup"])
-
-    email = st.text_input("📧 Email")
-    password = st.text_input("🔑 Password", type="password")
-
-    if st.button("Proceed"):
-        if email and password:
-            if option == "Login":
-                login(email, password)
-            else:
-                signup(email, password)
-        else:
-            st.warning("⚠️ Please enter email and password.")
-
-    st.stop()  # Stops the main app from running before login
-
-# ---- 🎨 AI Image Generation App Starts Here ----
+# ---- 🌟 Set Hugging Face API Key ----
 HF_API_KEY = st.secrets["HF_API_KEY"]
 client = InferenceClient(api_key=HF_API_KEY)
 
+# ---- 🌟 Session State for User Authentication ----
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "show_login_popup" not in st.session_state:
+    st.session_state.show_login_popup = False
+
+# ---- 🌟 Authentication Functions ----
+def sign_in_with_google():
+    try:
+        user = auth.sign_in_with_google()  # Firebase Google Sign-In
+        st.session_state.user = user
+        st.session_state.show_login_popup = False
+        st.experimental_rerun()
+    except Exception as e:
+        st.error(f"❌ Google Login Failed: {str(e)}")
+
+def logout():
+    st.session_state.user = None
+    st.experimental_rerun()
+
+# ---- 🌟 UI Configuration ----
 st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
 
+# ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
+if st.session_state.user:
+    st.sidebar.success(f"✅ Logged in as: {st.session_state.user['email']}")
+    if st.sidebar.button("🚪 Logout"):
+        logout()
+else:
+    if st.sidebar.button("🔐 Login with Google"):
+        st.session_state.show_login_popup = True
+        st.experimental_rerun()
+
+# ---- 🌟 Login Popup ----
+if st.session_state.show_login_popup and not st.session_state.user:
+    with st.modal("🔐 Login Required", closable=False):
+        st.markdown("### 🔹 Please Sign In to Continue")
+        st.button("🔵 Sign in with Google", on_click=sign_in_with_google)
+
+# ---- 🌟 Sidebar - Mode Selection ----
 if "enhancement_mode" not in st.session_state:
     st.session_state.enhancement_mode = False
 
 def toggle_mode():
-    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
+    if not st.session_state.user:
+        st.session_state.show_login_popup = True
+        st.experimental_rerun()
+    else:
+        st.session_state.enhancement_mode = not st.session_state.enhancement_mode
 
 toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
 st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
 
-if not st.session_state.enhancement_mode:
-    model = st.sidebar.selectbox(
-        "Select Model",
-        ["stabilityai/stable-diffusion-3.5-large", "stabilityai/stable-diffusion-xl", "stabilityai/stable-diffusion-2-1"],
-        index=0
-    )
+# ---- 🌟 Main Page ----
+if st.session_state.user:
+    if not st.session_state.enhancement_mode:
+        st.title("🌟 Rachna - AI Image Creator 🌟")
+        st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
 
-    resolution_map = {
-        "1280x720 (720p)": (1280, 720),
-        "1920x1080 (1080p)": (1920, 1080),
-        "2560x1440 (2K)": (2560, 1440),
-        "3840x2160 (4K)": (3840, 2160)
-    }
-    resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
-    num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
+        # ---- 🎨 Image Generation Settings ----
+        model = st.sidebar.selectbox(
+            "Select Model",
+            [
+                "stabilityai/stable-diffusion-3.5-large",
+                "stabilityai/stable-diffusion-xl",
+                "stabilityai/stable-diffusion-2-1"
+            ],
+            index=0
+        )
 
-    style_presets = {
-        "None": "",
-        "Cyberpunk": "A futuristic cyberpunk city with neon lights",
-        "Anime": "Anime-style fantasy landscape",
-        "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
-        "Sketch": "A pencil sketch of {prompt}",
-        "Realistic": "A highly detailed and photorealistic portrait"
-    }
-    style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
+        resolution_map = {
+            "1280x720 (720p)": (1280, 720),
+            "1920x1080 (1080p)": (1920, 1080),
+            "2560x1440 (2K)": (2560, 1440),
+            "3840x2160 (4K)": (3840, 2160)
+        }
+        resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
+        num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
 
-if st.session_state.enhancement_mode:
-    st.title("✨ Image Enhancement Tool")
-    st.markdown("Enhance your images with AI-powered filters! 🎨")
+        style_presets = {
+            "None": "",
+            "Cyberpunk": "A futuristic cyberpunk city with neon lights",
+            "Anime": "Anime-style fantasy landscape",
+            "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
+            "Sketch": "A pencil sketch of {prompt}",
+            "Realistic": "A highly detailed and photorealistic portrait"
+        }
+        style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
-    uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
+        # ---- 🎨 Image Generation ----
+        prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
 
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="📸 Original Image", use_container_width=True)
+        if st.button("🚀 Generate Image"):
+            with st.spinner("Generating... ⏳"):
+                try:
+                    final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                    images = []
+                    cols = st.columns(num_variations)
 
-        enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+                    for i in range(num_variations):
+                        seed = random.randint(1, 1000000)
+                        variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                        generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+                        generated_image = generated_image.resize(resolution_map[resolution])
+                        images.append(generated_image)
 
-        def enhance_image(image, options):
-            if "Sharpen" in options:
-                image = ImageEnhance.Sharpness(image).enhance(4.0)
-            if "Contrast" in options:
-                image = ImageEnhance.Contrast(image).enhance(2.5)
-            if "Brightness" in options:
-                image = ImageEnhance.Brightness(image).enhance(1.8)
-            if "Saturation" in options:
-                image = ImageEnhance.Color(image).enhance(2.5)
-            if "Grayscale" in options:
-                image = ImageOps.grayscale(image)
-            if "HDR Effect" in options:
-                image = ImageEnhance.Contrast(image).enhance(3.0)
-                image = ImageEnhance.Sharpness(image).enhance(4.0)
-            return image
+                        with cols[i]:
+                            st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                            img_bytes = io.BytesIO()
+                            generated_image.save(img_bytes, format="PNG")
+                            img_bytes = img_bytes.getvalue()
+                            st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
 
-        if st.button("✨ Enhance Image"):
-            enhanced_image = enhance_image(image, enhance_options)
-            st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
-            img_bytes = io.BytesIO()
-            enhanced_image.save(img_bytes, format="PNG")
-            img_bytes = img_bytes.getvalue()
-            st.download_button(label="💾 Download Enhanced Image", data=img_bytes, file_name="enhanced_image.png", mime="image/png")
+    else:
+        st.title("✨ Image Enhancement Tool")
+        st.markdown("Enhance your images with AI-powered filters! 🎨")
 
-st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+        uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
+
+        if uploaded_file:
+            image = Image.open(uploaded_file)
+            st.image(image, caption="📸 Original Image", use_container_width=True)
+
+            enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+
+            def enhance_image(image, options):
+                if "Sharpen" in options:
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                if "Contrast" in options:
+                    image = ImageEnhance.Contrast(image).enhance(2.5)
+                if "Brightness" in options:
+                    image = ImageEnhance.Brightness(image).enhance(1.8)
+                if "Saturation" in options:
+                    image = ImageEnhance.Color(image).enhance(2.5)
+                if "Grayscale" in options:
+                    image = ImageOps.grayscale(image)
+                if "HDR Effect" in options:
+                    image = ImageEnhance.Contrast(image).enhance(3.0)
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                return image
+
+            if st.button("✨ Enhance Image"):
+                enhanced_image = enhance_image(image, enhance_options)
+                st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+
