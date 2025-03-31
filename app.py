@@ -1084,6 +1084,120 @@
 
 
 
+import streamlit as st
+from huggingface_hub import InferenceClient
+from PIL import Image, ImageEnhance, ImageOps
+import io
+import random
+
+# Set Hugging Face API Key from Streamlit Secrets
+HF_API_KEY = st.secrets["HF_API_KEY"]
+client = InferenceClient(api_key=HF_API_KEY)
+
+# ---- 🌟 UI Configuration ----
+st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOGO.png", layout="wide")
+
+# ---- 🌟 Sidebar - Feature & Quality Options ----
+st.sidebar.header("⚙️ Feature & Quality Options")
+
+# Initialize session state for enhancement mode
+if "enhancement_mode" not in st.session_state:
+    st.session_state.enhancement_mode = False
+
+def toggle_mode():
+    st.session_state.enhancement_mode = not st.session_state.enhancement_mode
+
+toggle_label = "Switch to Image Enhancement" if not st.session_state.enhancement_mode else "Switch to Image Generation"
+st.sidebar.button(f"🖼️ {toggle_label}", on_click=toggle_mode)
+
+# ---- 🌟 Sidebar - Model Selection (Only if Image Enhancement is OFF) ----
+if not st.session_state.enhancement_mode:
+    model = st.sidebar.selectbox(
+        "Select Model",
+        [
+            "stabilityai/stable-diffusion-3.5-large",
+            "stabilityai/stable-diffusion-xl",
+            "stabilityai/stable-diffusion-2-1"
+        ],
+        index=0
+    )
+
+    resolution_map = {
+        "1280x720 (720p)": (1280, 720),
+        "1920x1080 (1080p)": (1920, 1080),
+        "2560x1440 (2K)": (2560, 1440),
+        "3840x2160 (4K)": (3840, 2160)
+    }
+    resolution = st.sidebar.radio("🎨 Select Resolution", list(resolution_map.keys()), index=2)
+    num_variations = st.sidebar.slider("🔄 Number of Variations", 1, 5, 1)
+
+    style_presets = {
+        "None": "",
+        "Cyberpunk": "A futuristic cyberpunk city with neon lights",
+        "Anime": "Anime-style fantasy landscape",
+        "Oil Painting": "A beautiful oil painting of a sunset over the mountains",
+        "Sketch": "A pencil sketch of {prompt}",
+        "Realistic": "A highly detailed and photorealistic portrait"
+    }
+    style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
+
+# ---- 🌟 Image Generation Mode ----
+if not st.session_state.enhancement_mode:
+    st.title("🌟 Rachna - AI Image Creator 🌟")
+    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+
+    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+    negative_prompt = st.text_input("🚫 Enter Negative Prompt (optional)", "")
+    
+    # Live Preview of the Prompt
+    st.markdown(f"**Preview Prompt:** `{prompt}`")
+    if negative_prompt:
+        st.markdown(f"**Negative Prompt:** `{negative_prompt}`")
+
+    if st.button("🚀 Generate Image"):
+        with st.spinner("Generating... ⏳"):
+            try:
+                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                if negative_prompt:
+                    final_prompt += f", avoid {negative_prompt}"
+
+                if "history" not in st.session_state:
+                    st.session_state.history = []
+
+                images = []
+                cols = st.columns(num_variations)
+
+                for i in range(num_variations):
+                    seed = random.randint(1, 1000000)
+                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+                    generated_image = generated_image.resize(resolution_map[resolution])
+                    images.append(generated_image)
+
+                    with cols[i]:
+                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                        img_bytes = io.BytesIO()
+                        generated_image.save(img_bytes, format="PNG")
+                        img_bytes = img_bytes.getvalue()
+                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes, file_name=f"generated_image_{i+1}.png", mime="image/png")
+                        st.session_state.history.append(img_bytes)
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+
+# ---- 🌟 Sidebar - Image History ----
+st.sidebar.subheader("📜 Image History")
+if "history" in st.session_state and st.session_state.history:
+    for idx, img_bytes in enumerate(st.session_state.history):
+        img = Image.open(io.BytesIO(img_bytes))
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+if st.sidebar.button("🗑️ Clear History"):
+    st.session_state.history = []
+
+# ---- 🌟 Footer ----
+st.markdown("---")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
 
 
 
