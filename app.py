@@ -1313,7 +1313,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -1330,9 +1329,11 @@ st.set_page_config(page_title="Rachna - AI Image Creator", page_icon="RACHNA-LOG
 # ---- 🌟 Sidebar - Feature & Quality Options ----
 st.sidebar.header("⚙️ Feature & Quality Options")
 
-# Initialize session state for enhancement mode
+# Initialize session state for enhancement mode and history
 if "enhancement_mode" not in st.session_state:
     st.session_state.enhancement_mode = False
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 def toggle_mode():
     st.session_state.enhancement_mode = not st.session_state.enhancement_mode
@@ -1389,8 +1390,6 @@ if not st.session_state.enhancement_mode:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
                 if negative_prompt:
                     final_prompt += f", avoiding {negative_prompt}"
-                if "history" not in st.session_state:
-                    st.session_state.history = []
                 images = []
                 cols = st.columns(num_variations)
 
@@ -1415,15 +1414,14 @@ if st.session_state.enhancement_mode:
     st.title("✨ Image Enhancement Tool")
     st.markdown("Enhance your images with AI-powered filters! 🎨")
 
-    uploaded_file = st.file_uploader("📂 Upload an Image", type=["png", "jpg", "jpeg"])
+    uploaded_files = st.file_uploader("📂 Upload Images", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
 
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="📸 Original Image", use_container_width=True)
-
-        enhance_options = st.multiselect("🔍 Select Enhancements", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
-
-        if st.button("✨ Enhance Image"):
+    if uploaded_files:
+        enhanced_images = []
+        for uploaded_file in uploaded_files:
+            image = Image.open(uploaded_file)
+            enhance_options = st.multiselect(f"🔍 Select Enhancements for {uploaded_file.name}", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+            
             enhanced_image = image.copy()
             if "Sharpen" in enhance_options:
                 enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(4.0)
@@ -1438,18 +1436,22 @@ if st.session_state.enhancement_mode:
             if "HDR Effect" in enhance_options:
                 enhanced_image = ImageEnhance.Contrast(enhanced_image).enhance(3.0)
                 enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(4.0)
-            st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
+            
+            enhanced_images.append((uploaded_file.name, enhanced_image))
+            st.image(enhanced_image, caption=f"🎨 Enhanced {uploaded_file.name}", use_container_width=True)
+
             img_bytes = io.BytesIO()
             enhanced_image.save(img_bytes, format="PNG")
-            st.download_button(label="💾 Download Enhanced Image", data=img_bytes.getvalue(), file_name="enhanced_image.png", mime="image/png")
+            st.download_button(label=f"💾 Download {uploaded_file.name}", data=img_bytes.getvalue(), file_name=f"enhanced_{uploaded_file.name}", mime="image/png")
 
 # ---- 🌟 Sidebar - Image History ----
 st.sidebar.subheader("📜 Image History")
-if "history" in st.session_state and st.session_state.history:
-    for idx, img_bytes in enumerate(st.session_state.history[::-1]):
-        img = Image.open(io.BytesIO(img_bytes))
-        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
-        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+    img = Image.open(io.BytesIO(img_bytes))
+    st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+    st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
 
+# ---- 🌟 Footer ----
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by HARSH SINGH AND ADITYA TIWARI")
+
