@@ -1315,7 +1315,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -1373,19 +1372,37 @@ if not st.session_state.enhancement_mode:
     }
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
-# ---- 🌟 Image Inpainting Mode ----
-def inpaint_image(image):
-    st.markdown("### 🖌️ Select Area for Inpainting")
-    mask = Image.new("L", image.size, 0)
-    draw = ImageDraw.Draw(mask)
-    
-    # Example: Draw a rectangle (User input for area selection can be implemented later)
-    draw.rectangle([50, 50, 200, 200], fill=255)
-    
-    # Placeholder for actual AI inpainting process
-    st.image(image, caption="Original Image", use_container_width=True)
-    st.image(mask, caption="Mask (Selected Area for Inpainting)", use_container_width=True)
-    st.markdown("(Inpainting AI integration pending...)")
+# ---- 🌟 Image Generation Mode ----
+if not st.session_state.enhancement_mode:
+    st.title("🌟 Rachna - AI Image Creator 🌟")
+    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+
+    prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+
+    if st.button("🚀 Generate Image"):
+        with st.spinner("Generating... ⏳"):
+            try:
+                final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                if "history" not in st.session_state:
+                    st.session_state.history = []
+                images = []
+                cols = st.columns(num_variations)
+
+                for i in range(num_variations):
+                    seed = random.randint(1, 1000000)
+                    variation_prompt = f"{final_prompt}, variation {i+1}, different angle, lighting, and style"
+                    generated_image = client.text_to_image(variation_prompt, model=model, seed=seed)
+                    generated_image = generated_image.resize(resolution_map[resolution])
+                    images.append(generated_image)
+
+                    with cols[i]:
+                        st.image(generated_image, caption=f"Generated Image {i+1}", use_container_width=True)
+                        img_bytes = io.BytesIO()
+                        generated_image.save(img_bytes, format="PNG")
+                        st.download_button(label=f"💽 Download {i+1}", data=img_bytes.getvalue(), file_name=f"generated_image_{i+1}.png", mime="image/png")
+                        st.session_state.history.append(img_bytes.getvalue())
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
 # ---- 🌟 Image Enhancement Mode ----
 if st.session_state.enhancement_mode:
@@ -1415,17 +1432,19 @@ if st.session_state.enhancement_mode:
             if "HDR Effect" in enhance_options:
                 enhanced_image = ImageEnhance.Contrast(enhanced_image).enhance(3.0)
                 enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(4.0)
-
             st.image(enhanced_image, caption="🎨 Enhanced Image", use_container_width=True)
             img_bytes = io.BytesIO()
             enhanced_image.save(img_bytes, format="PNG")
             st.download_button(label="💾 Download Enhanced Image", data=img_bytes.getvalue(), file_name="enhanced_image.png", mime="image/png")
 
-# ---- 🌟 AI Art Styles Marketplace (Placeholder) ----
-st.sidebar.subheader("🎨 AI Art Styles Marketplace")
-st.sidebar.markdown("(Feature to browse and share AI art styles coming soon...)")
+# ---- 🌟 Sidebar - Image History ----
+st.sidebar.subheader("📜 Image History")
+if "history" in st.session_state and st.session_state.history:
+    for idx, img_bytes in enumerate(st.session_state.history[::-1]):
+        img = Image.open(io.BytesIO(img_bytes))
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
 
-# ---- 🌟 Footer ----
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
 
