@@ -1314,7 +1314,6 @@
 
 
 
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -1378,11 +1377,18 @@ if not st.session_state.enhancement_mode:
     st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
 
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
+    negative_prompt = st.text_input("🚫 Negative Prompt", "")
+    live_preview = st.checkbox("🔍 Live Preview")
+
+    if live_preview and prompt:
+        st.markdown(f"**Preview:** {prompt} | **Negative:** {negative_prompt}")
 
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
+                if negative_prompt:
+                    final_prompt += f", avoiding {negative_prompt}"
                 if "history" not in st.session_state:
                     st.session_state.history = []
                 images = []
@@ -1447,4 +1453,3 @@ if "history" in st.session_state and st.session_state.history:
 
 st.markdown("---")
 st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by AI Enthusiasts HARSH SINGH AND ADITYA TIWARI")
-
