@@ -1311,8 +1311,6 @@
 
 
 
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -1372,6 +1370,43 @@ if not st.session_state.enhancement_mode:
     }
     style = st.sidebar.selectbox("🎨 Apply Style Preset", list(style_presets.keys()), index=0)
 
+# ---- 🌟 Image Enhancement Mode ----
+if st.session_state.enhancement_mode:
+    st.title("✨ Image Enhancement Tool")
+    st.markdown("Enhance your images with AI-powered filters! 🎨")
+    
+    uploaded_files = st.file_uploader("📂 Upload Images", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
+    
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            image = Image.open(uploaded_file)
+            st.image(image, caption=f"📸 Original: {uploaded_file.name}", width=150)
+
+            enhance_options = st.multiselect(f"🔍 Enhancements for {uploaded_file.name}", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
+
+            def enhance_image(image, options):
+                if "Sharpen" in options:
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                if "Contrast" in options:
+                    image = ImageEnhance.Contrast(image).enhance(2.5)
+                if "Brightness" in options:
+                    image = ImageEnhance.Brightness(image).enhance(1.8)
+                if "Saturation" in options:
+                    image = ImageEnhance.Color(image).enhance(2.5)
+                if "Grayscale" in options:
+                    image = ImageOps.grayscale(image)
+                if "HDR Effect" in options:
+                    image = ImageEnhance.Contrast(image).enhance(3.0)
+                    image = ImageEnhance.Sharpness(image).enhance(4.0)
+                return image
+
+            if st.button(f"✨ Enhance {uploaded_file.name}"):
+                enhanced_image = enhance_image(image, enhance_options)
+                st.image(enhanced_image, caption=f"🎨 Enhanced: {uploaded_file.name}", width=150)
+                img_bytes = io.BytesIO()
+                enhanced_image.save(img_bytes, format="PNG")
+                st.download_button(label=f"💾 Download {uploaded_file.name}", data=img_bytes.getvalue(), file_name=f"enhanced_{uploaded_file.name}", mime="image/png")
+
 # ---- 🌟 Image Generation Mode ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
@@ -1409,47 +1444,16 @@ if not st.session_state.enhancement_mode:
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-# ---- 🌟 Image Enhancement Mode ----
-if st.session_state.enhancement_mode:
-    st.title("✨ Image Enhancement Tool")
-    st.markdown("Enhance your images with AI-powered filters! 🎨")
-
-    uploaded_files = st.file_uploader("📂 Upload Images", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
-
-    if uploaded_files:
-        enhanced_images = []
-        for uploaded_file in uploaded_files:
-            image = Image.open(uploaded_file)
-            enhance_options = st.multiselect(f"🔍 Select Enhancements for {uploaded_file.name}", ["Sharpen", "Contrast", "Grayscale", "Brightness", "Saturation", "HDR Effect"], default=[])
-            
-            enhanced_image = image.copy()
-            if "Sharpen" in enhance_options:
-                enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(4.0)
-            if "Contrast" in enhance_options:
-                enhanced_image = ImageEnhance.Contrast(enhanced_image).enhance(2.5)
-            if "Brightness" in enhance_options:
-                enhanced_image = ImageEnhance.Brightness(enhanced_image).enhance(1.8)
-            if "Saturation" in enhance_options:
-                enhanced_image = ImageEnhance.Color(enhanced_image).enhance(2.5)
-            if "Grayscale" in enhance_options:
-                enhanced_image = ImageOps.grayscale(enhanced_image)
-            if "HDR Effect" in enhance_options:
-                enhanced_image = ImageEnhance.Contrast(enhanced_image).enhance(3.0)
-                enhanced_image = ImageEnhance.Sharpness(enhanced_image).enhance(4.0)
-            
-            enhanced_images.append((uploaded_file.name, enhanced_image))
-            st.image(enhanced_image, caption=f"🎨 Enhanced {uploaded_file.name}", use_container_width=True)
-
-            img_bytes = io.BytesIO()
-            enhanced_image.save(img_bytes, format="PNG")
-            st.download_button(label=f"💾 Download {uploaded_file.name}", data=img_bytes.getvalue(), file_name=f"enhanced_{uploaded_file.name}", mime="image/png")
-
 # ---- 🌟 Sidebar - Image History ----
 st.sidebar.subheader("📜 Image History")
-for idx, img_bytes in enumerate(st.session_state.history[-5:]):
-    img = Image.open(io.BytesIO(img_bytes))
-    st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
-    st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+if st.session_state.history:
+    for idx, img_bytes in enumerate(st.session_state.history[-5:]):
+        img = Image.open(io.BytesIO(img_bytes))
+        st.sidebar.image(img, caption=f"History {idx+1}", use_container_width=True)
+        st.sidebar.download_button(label="💽 Download", data=img_bytes, file_name=f"history_image_{idx+1}.png", mime="image/png")
+
+if st.sidebar.button("🗑️ Clear History"):
+    st.session_state.history = []
 
 # ---- 🌟 Footer ----
 st.markdown("---")
