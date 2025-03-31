@@ -1311,6 +1311,8 @@
 
 
 
+
+
 import streamlit as st
 from huggingface_hub import InferenceClient
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
@@ -1413,18 +1415,11 @@ if not st.session_state.enhancement_mode:
     st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
 
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
-    negative_prompt = st.text_input("🚫 Negative Prompt", "")
-    live_preview = st.checkbox("🔍 Live Preview")
-
-    if live_preview and prompt:
-        st.markdown(f"**Preview:** {prompt} | **Negative:** {negative_prompt}")
 
     if st.button("🚀 Generate Image"):
         with st.spinner("Generating... ⏳"):
             try:
                 final_prompt = f"{prompt}, {style_presets[style]}" if style_presets[style] else prompt
-                if negative_prompt:
-                    final_prompt += f", avoiding {negative_prompt}"
                 images = []
                 cols = st.columns(num_variations)
 
@@ -1445,6 +1440,7 @@ if not st.session_state.enhancement_mode:
                 st.error(f"❌ Error: {e}")
 
 # ---- 🌟 Sidebar - Image History ----
+
 st.sidebar.subheader("📜 Image History")
 if st.session_state.history:
     for idx, img_bytes in enumerate(st.session_state.history[-5:]):
