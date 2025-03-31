@@ -1412,7 +1412,7 @@ if st.session_state.enhancement_mode:
 # ---- 🌟 Image Generation Mode ----
 if not st.session_state.enhancement_mode:
     st.title("🌟 Rachna - AI Image Creator 🌟")
-    st.markdown("**Create stunning AI-generated images with ease!** 🎨✨")
+    st.markdown("**Creation In Your Hands!** 🎨✨")
 
     prompt = st.text_input("📝 Enter Your Prompt", "A beautiful landscape with mountains and a river")
 
