@@ -1453,5 +1453,5 @@ if st.sidebar.button("🗑️ Clear History"):
 
 # ---- 🌟 Footer ----
 st.markdown("---")
-st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by HARSH SINGH AND ADITYA TIWARI")
+st.markdown("🔹 **Powered by Stable Diffusion** | Created with ❤️ by HARSH SINGH AND AADITYA TIWARI")
 
